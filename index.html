@@ -648,8 +648,18 @@ async function openReader(storyId, epNum) {
     }
   }
 
-  // Pages: from DB or demo placeholders
-  const pages = chapter?.pages || generateDemoPages(storyId, epNum);
+  // Pages: from DB or demo placeholders — sort by filename number
+  let pages = chapter?.pages || generateDemoPages(storyId, epNum);
+  if(chapter?.pages) {
+    pages = [...chapter.pages].sort((a, b) => {
+      const getNum = url => {
+        const filename = url.split('/').pop().split('.')[0];
+        const match = filename.match(/(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      };
+      return getNum(a) - getNum(b);
+    });
+  }
   const totalEps = s.chapters_count || 8;
 
   document.getElementById('reader').innerHTML = `
