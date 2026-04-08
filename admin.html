@@ -200,10 +200,13 @@ td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-a
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SURL = 'https://uhjptxhhaipckshgytul.supabase.co';
 const SKEY = 'sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9';
 const ADMIN = 'andiru6996@gmail.com';
+const { createClient } = supabase;
+const sb = createClient(SURL, SKEY);
 let token = '';
 let refreshToken = '';
 
@@ -278,29 +281,19 @@ window.addEventListener('load', function() {
   // Add chapter
   document.getElementById('addChapBtn').addEventListener('click', doAddChapter);
 
-  // Check saved token
-  var saved = localStorage.getItem('mh_token');
-  var savedRefresh = localStorage.getItem('mh_refresh');
-  if(saved){ token = saved; refreshToken = savedRefresh || ''; showPanel(); }
+  // Check saved session via Supabase SDK
+  sb.auth.getSession().then(function({ data }){
+    if(data.session && data.session.user.email === ADMIN){
+      token = data.session.access_token;
+      refreshToken = data.session.refresh_token;
+      showPanel();
+    }
+  });
 
-  // Auto refresh token every 50 minutes
-  setInterval(async function(){
-    if(!refreshToken) return;
-    try {
-      var rres = await fetch(SURL+'/auth/v1/token?grant_type=refresh_token', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','apikey':SKEY},
-        body: JSON.stringify({refresh_token: refreshToken})
-      });
-      var rdata = await rres.json();
-      if(rdata.access_token){
-        token = rdata.access_token;
-        refreshToken = rdata.refresh_token || refreshToken;
-        localStorage.setItem('mh_token', token);
-        localStorage.setItem('mh_refresh', refreshToken);
-      }
-    } catch(e){ console.log('Auto refresh failed', e); }
-  }, 50 * 60 * 1000);
+  // Auto refresh via SDK
+  sb.auth.onAuthStateChange(function(event, session){
+    if(session){ token = session.access_token; refreshToken = session.refresh_token; }
+  });
 });
 
 async function doLogin(){
@@ -314,25 +307,16 @@ async function doLogin(){
   msg.className='msg ok'; msg.textContent='Logging in...';
 
   try {
-    var res = await fetch(SURL+'/auth/v1/token?grant_type=password', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'apikey':SKEY },
-      body: JSON.stringify({ email:email, password:pass })
-    });
-    var data = await res.json();
-    if(data.error || data.error_description){
-      msg.className='msg err';
-      msg.textContent = data.error_description || data.error;
-      return;
-    }
-    token = data.access_token;
-    refreshToken = data.refresh_token || '';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(error) throw error;
+    token = data.session.access_token;
+    refreshToken = data.session.refresh_token;
     localStorage.setItem('mh_token', token);
     localStorage.setItem('mh_refresh', refreshToken);
     showPanel();
   } catch(e){
     msg.className='msg err';
-    msg.textContent = 'Connection error: '+e.message;
+    msg.textContent = 'Login error: '+e.message;
   }
 }
 
@@ -360,9 +344,11 @@ function amsg(txt, type){
 }
 
 async function api(path, method, body){
+  const { data: { session } } = await sb.auth.getSession();
+  const currentToken = session ? session.access_token : token;
   var opts = {
     method: method||'GET',
-    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+token, 'Content-Type':'application/json', 'Prefer':'return=representation' }
+    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+currentToken, 'Content-Type':'application/json', 'Prefer':'return=representation' }
   };
   if(body) opts.body = JSON.stringify(body);
   var res = await fetch(SURL+'/rest/v1/'+path, opts);
@@ -386,14 +372,12 @@ async function loadStats(){
 }
 
 async function uploadFile(file, path){
-  var res = await fetch(SURL+'/storage/v1/object/manga-images/'+path, {
-    method:'POST',
-    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+token, 'Content-Type':file.type, 'x-upsert':'true' },
-    body: file
-  });
-  var data = await res.json();
-  if(data.error) throw new Error(data.error);
-  return SURL+'/storage/v1/object/public/manga-images/'+path;
+  const { data, error } = await sb.storage
+    .from('manga-images')
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if(error) throw new Error(error.message);
+  const { data: urlData } = sb.storage.from('manga-images').getPublicUrl(path);
+  return urlData.publicUrl;
 }
 
 async function doAddStory(){
