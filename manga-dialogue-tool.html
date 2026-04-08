@@ -55,7 +55,7 @@ body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif;
 .uz-sub { font-size:12px; color:var(--muted); }
 
 /* IMAGE GRID */
-.img-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.img-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; }
 .img-item {
   position:relative; border-radius:10px; overflow:hidden;
   border:2px solid #ffffff10; cursor:grab; transition:all 0.2s;
@@ -131,7 +131,7 @@ select option { background:#1c1c26; }
 .msg.ok { background:#4ade8018; border:1px solid #4ade8033; color:#4ade80; display:block; }
 
 /* DOWNLOAD GRID */
-.dl-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.dl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .dl-item { background:var(--surface); border-radius:10px; padding:12px; text-align:center; border:1px solid #ffffff08; }
 .dl-item canvas { width:100%; border-radius:6px; margin-bottom:8px; }
 .dl-btn { width:100%; padding:8px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:'Nunito',sans-serif; font-size:12px; font-weight:800; cursor:pointer; }
@@ -165,13 +165,14 @@ select option { background:#1c1c26; }
   <div class="section active" id="sec1">
     <div class="card">
       <div class="card-title">🖼️ UPLOAD MANGA PANELS</div>
-      <div class="tip">📌 Upload up to 8 panel images. Drag to reorder them after uploading!</div>
+      <div class="tip">📌 Upload up to 25 panel images. Drag to reorder them after uploading!</div>
       <div class="upload-zone" id="uploadZone">
         <div class="uz-icon">📁</div>
         <div class="uz-text">Tap to upload panel images</div>
-        <div class="uz-sub">JPG, PNG · Up to 8 images · Select all at once</div>
+        <div class="uz-sub">JPG, PNG · Up to 25 images · Select all at once</div>
         <input type="file" id="panelInput" accept="image/*" multiple>
       </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" id="addMoreWrap"></div>
       <div class="img-grid" id="imgGrid"></div>
     </div>
     <button class="btn btn-primary" id="step1Next">Next — Write Script →</button>
@@ -318,7 +319,7 @@ document.getElementById('step3Next').addEventListener('click', generatePanels);
 // ─── FILE HANDLING ─────────────────────────────────────────────────────────
 function handleFiles(e) { handleFileDrop(e.target.files); }
 function handleFileDrop(files) {
-  const arr = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 8);
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 25).sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric:true}));
   arr.forEach(f => {
     const url = URL.createObjectURL(f);
     panels.push({ file: f, url, name: f.name });
@@ -337,6 +338,19 @@ function renderGrid() {
       <button class="remove-btn" onclick="removePanel(${i})">×</button>
     </div>
   `).join('');
+
+  // Update add more button area
+  const wrap = document.getElementById('addMoreWrap');
+  if(wrap) {
+    wrap.innerHTML = panels.length > 0 ? `
+      <div style="background:var(--surface);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:12px;border:1px solid #ffffff10;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:800;color:var(--accent2)">📊 ${panels.length} panels loaded</span>
+        <button onclick="document.getElementById('panelInput').click()" style="background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer">+ Add More Images</button>
+        <button onclick="panels=[];renderGrid();" style="background:#ff4e6a18;color:var(--accent);border:1px solid #ff4e6a33;padding:7px 16px;border-radius:20px;font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑️ Clear All</button>
+        <span style="font-size:11px;color:var(--muted)">Drag panels to reorder</span>
+      </div>
+    ` : '';
+  }
 }
 
 function removePanel(idx) {
@@ -646,17 +660,25 @@ async function generatePanels() {
 }
 
 function getBubblePositions(count, W, H, hasCaption) {
-  const topOffset = hasCaption ? 120 : 60;
-  const positions = [
-    { x: W * 0.25, y: H * 0.15 + topOffset },
-    { x: W * 0.75, y: H * 0.25 + topOffset },
-    { x: W * 0.2,  y: H * 0.45 },
-    { x: W * 0.75, y: H * 0.45 },
-    { x: W * 0.25, y: H * 0.7  },
-    { x: W * 0.75, y: H * 0.7  },
-    { x: W * 0.3,  y: H * 0.85 },
-    { x: W * 0.7,  y: H * 0.85 },
-  ];
+  const topOffset = hasCaption ? 130 : 50;
+  const bottomLimit = H - 60;
+  const usableH = bottomLimit - topOffset;
+  const positions = [];
+  // Generate dynamic positions based on count
+  const cols = [W * 0.22, W * 0.78, W * 0.5, W * 0.25, W * 0.75];
+  const rows = 10;
+  for(let r = 0; r < rows; r++) {
+    for(let c = 0; c < 2; c++) {
+      positions.push({
+        x: c === 0 ? W * 0.22 : W * 0.78,
+        y: topOffset + (usableH / (rows)) * r + (usableH / rows) * 0.5
+      });
+    }
+  }
+  // Add center positions for odd ones
+  for(let r = 0; r < rows; r++) {
+    positions.push({ x: W * 0.5, y: topOffset + (usableH / rows) * r + (usableH / rows) * 0.5 });
+  }
   return positions.slice(0, count);
 }
 
