@@ -1,8 +1,480 @@
 <!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
-<body style="background:#000;color:#fff;padding:20px">
-<h1 style="color:#ff4e6a">MangaHive Admin</h1>
-<p>Page is working!</p>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangaHive Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f; --card:#1c1c26; --surface:#13131a;
+  --accent:#ff4e6a; --accent2:#ffd166; --text:#f0f0f8;
+  --muted:#6b6b8a; --success:#4ade80; --radius:14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; min-height:100vh; }
+.gate { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; gap:20px; }
+.logo { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; }
+.logo span { color:var(--accent); }
+.box { background:var(--card); border-radius:var(--radius); padding:28px; width:100%; max-width:380px; border:1px solid #ffffff08; }
+.box h2 { font-size:18px; margin-bottom:20px; }
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+.field input { width:100%; background:var(--surface); border:1.5px solid #ffffff10; border-radius:12px; color:var(--text); padding:14px 16px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:600; outline:none; }
+.field input:focus { border-color:var(--accent); }
+.btn { width:100%; padding:16px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); font-family:'Nunito',sans-serif; font-size:16px; font-weight:900; cursor:pointer; }
+.msg { padding:12px 16px; border-radius:10px; font-size:13px; font-weight:700; margin-bottom:16px; display:none; }
+.msg.err { background:#ff4e6a18; border:1px solid #ff4e6a33; color:#ff4e6a; display:block; }
+.msg.ok { background:#4ade8018; border:1px solid #4ade8033; color:#4ade80; display:block; }
+
+/* ADMIN PANEL */
+#panel { display:none; }
+.header { background:var(--surface); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #ffffff0c; position:sticky; top:0; z-index:50; }
+.hlogo { font-family:'Bebas Neue',sans-serif; font-size:24px; }
+.hlogo span { color:var(--accent); }
+.hbadge { background:#ffd16622; color:var(--accent2); font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; }
+.hout { background:var(--card); border:1px solid #ffffff10; color:var(--muted); padding:8px 16px; border-radius:10px; cursor:pointer; font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; }
+.wrap { max-width:860px; margin:0 auto; padding:24px 20px 60px; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.stat { background:var(--card); border-radius:var(--radius); padding:18px; text-align:center; border:1px solid #ffffff08; }
+.snum { font-family:'Bebas Neue',sans-serif; font-size:34px; color:var(--accent); }
+.slbl { font-size:11px; color:var(--muted); font-weight:800; margin-top:4px; }
+.tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.tab { padding:10px 18px; border-radius:30px; border:1.5px solid #ffffff12; background:var(--card); color:var(--muted); font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
+.tab.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.sec { display:none; }
+.sec.on { display:block; }
+.fcard { background:var(--card); border-radius:var(--radius); border:1px solid #ffffff08; padding:22px; margin-bottom:18px; }
+.ftitle { font-family:'Bebas Neue',sans-serif; font-size:22px; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #ffffff0c; }
+.fg { display:grid; gap:14px; }
+.fg2 { grid-template-columns:1fr 1fr; }
+@media(max-width:500px){ .fg2 { grid-template-columns:1fr; } }
+.fl { display:flex; flex-direction:column; gap:6px; }
+.fl label { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+.fl input, .fl select, .fl textarea { background:var(--surface); border:1.5px solid #ffffff10; border-radius:12px; color:var(--text); padding:13px 16px; font-family:'Nunito',sans-serif; font-size:14px; font-weight:600; outline:none; }
+.fl input:focus, .fl select:focus, .fl textarea:focus { border-color:var(--accent); }
+.fl select option { background:#1c1c26; }
+.fl textarea { resize:vertical; min-height:80px; }
+.upzone { border:2px dashed #ffffff18; border-radius:var(--radius); padding:28px; text-align:center; cursor:pointer; background:var(--surface); }
+.upzone input { display:none; }
+.sbtn { width:100%; padding:15px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); font-family:'Nunito',sans-serif; font-size:15px; font-weight:900; cursor:pointer; margin-top:6px; }
+.sbtn:disabled { opacity:0.5; }
+.trow { display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:14px 16px; border-radius:12px; border:1px solid #ffffff08; }
+.tgl { width:46px; height:25px; background:#ffffff15; border-radius:30px; position:relative; cursor:pointer; border:none; transition:background 0.2s; }
+.tgl.on { background:var(--accent); }
+.tgl::after { content:''; position:absolute; top:3px; left:3px; width:19px; height:19px; background:#fff; border-radius:50%; transition:transform 0.2s; }
+.tgl.on::after { transform:translateX(21px); }
+.prevs { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.prevs img { width:56px; height:75px; object-fit:cover; border-radius:8px; }
+#cprev { width:100%; height:160px; object-fit:cover; border-radius:10px; display:none; margin-top:10px; }
+.amsg { padding:12px 16px; border-radius:10px; font-size:13px; font-weight:700; margin-bottom:16px; display:none; }
+.amsg.err { background:#ff4e6a18; border:1px solid #ff4e6a33; color:#ff4e6a; display:block; }
+.amsg.ok { background:#4ade8018; border:1px solid #4ade8033; color:#4ade80; display:block; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; padding:10px 12px; font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; border-bottom:1px solid #ffffff0c; }
+td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-align:middle; }
+.sthumb { width:38px; height:52px; object-fit:cover; border-radius:6px; }
+.dbtn { padding:5px 12px; border-radius:8px; font-size:12px; font-weight:800; border:none; cursor:pointer; font-family:'Nunito',sans-serif; background:#ff4e6a18; color:var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="gate" id="gate">
+  <div class="logo">Manga<span>Hive</span></div>
+  <div class="box">
+    <h2>🔐 Admin Login</h2>
+    <div class="msg" id="lmsg"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="aemail" placeholder="your@gmail.com" value="andiru6996@gmail.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="apass" placeholder="Your password" id="apass">
+    </div>
+    <button class="btn" id="loginBtn">Login to Admin Panel</button>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <div class="header">
+    <div class="hlogo">Manga<span>Hive</span></div>
+    <div class="hbadge">⚡ ADMIN</div>
+    <button class="hout" id="outBtn">Logout</button>
+  </div>
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><div class="snum" id="ns">0</div><div class="slbl">📚 Stories</div></div>
+      <div class="stat"><div class="snum" id="nc">0</div><div class="slbl">📄 Chapters</div></div>
+      <div class="stat"><div class="snum" id="nu">0</div><div class="slbl">👥 Users</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" id="t1">➕ Add Story</button>
+      <button class="tab" id="t2">📄 Add Chapter</button>
+      <button class="tab" id="t3">📚 Manage</button>
+    </div>
+    <div class="amsg" id="amsg"></div>
+
+    <!-- ADD STORY -->
+    <div class="sec on" id="s1">
+      <div class="fcard">
+        <div class="ftitle">📚 ADD NEW STORY</div>
+        <div class="fg">
+          <div class="fl"><label>Title *</label><input type="text" id="stitle" placeholder="Story title"></div>
+          <div class="fg fg2">
+            <div class="fl"><label>Genre *</label>
+              <select id="sgenre">
+                <option value="">Select genre</option>
+                <option>Romance</option><option>Action</option><option>Fantasy</option>
+                <option>Horror</option><option>Drama</option><option>Comedy</option>
+                <option>Slice of Life</option><option>Thriller</option><option>Sci-Fi</option>
+              </select>
+            </div>
+            <div class="fl"><label>Author *</label><input type="text" id="sauthor" placeholder="Author name"></div>
+          </div>
+          <div class="fl"><label>Synopsis *</label><textarea id="ssynopsis" placeholder="Story description..."></textarea></div>
+          <div class="fg fg2">
+            <div class="fl"><label>Status</label>
+              <select id="sstatus"><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select>
+            </div>
+            <div class="fl"><label>Tags</label><input type="text" id="stags" placeholder="action, romance"></div>
+          </div>
+          <div class="fl">
+            <label>Cover Image *</label>
+            <div class="upzone" id="czone">
+              <div style="font-size:28px">🖼️</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:700">Tap to upload cover</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">JPG or PNG · Max 5MB</div>
+              <input type="file" id="cfile" accept="image/*">
+            </div>
+            <img id="cprev">
+          </div>
+          <div class="trow">
+            <div><div style="font-size:14px;font-weight:700">🔥 Mark as Trending</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Shows in featured section</div></div>
+            <button class="tgl" id="ttgl"></button>
+          </div>
+          <button class="sbtn" id="addStoryBtn">➕ Add Story</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD CHAPTER -->
+    <div class="sec" id="s2">
+      <div class="fcard">
+        <div class="ftitle">📄 ADD CHAPTER</div>
+        <div class="fg">
+          <div class="fl"><label>Story *</label><select id="cstory"><option value="">Select story...</option></select></div>
+          <div class="fg fg2">
+            <div class="fl"><label>Episode No. *</label><input type="number" id="cnum" placeholder="1" min="1"></div>
+            <div class="fl"><label>Episode Title</label><input type="text" id="ctitle" placeholder="The Beginning"></div>
+          </div>
+          <div class="trow">
+            <div><div style="font-size:14px;font-weight:700">🔓 Free Episode</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Toggle OFF for premium</div></div>
+            <button class="tgl on" id="ftgl"></button>
+          </div>
+          <div class="fl" id="ccostf" style="display:none"><label>Coin Cost</label><input type="number" id="ccost" value="5" min="1"></div>
+          <div class="fl">
+            <label>Pages *</label>
+            <div class="upzone" id="pzone">
+              <div style="font-size:28px">🖼️</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:700">Tap to upload pages</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Multiple images · In order</div>
+              <input type="file" id="pfiles" accept="image/*" multiple>
+            </div>
+            <div class="prevs" id="pprev"></div>
+          </div>
+          <button class="sbtn" id="addChapBtn">📄 Upload Chapter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE -->
+    <div class="sec" id="s3">
+      <div class="fcard">
+        <div class="ftitle">📚 STORIES</div>
+        <div id="stlist"><div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SURL = 'https://uhjptxhhaipckshgytul.supabase.co';
+const SKEY = 'sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9';
+const ADMIN = 'andiru6996@gmail.com';
+let token = '';
+
+// INIT
+window.addEventListener('load', function() {
+  // Login button
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('apass').addEventListener('keypress', function(e){ if(e.key==='Enter') doLogin(); });
+
+  // Logout
+  document.getElementById('outBtn').addEventListener('click', function(){
+    token=''; localStorage.removeItem('mh_token');
+    document.getElementById('gate').style.display='flex';
+    document.getElementById('panel').style.display='none';
+  });
+
+  // Tabs
+  document.getElementById('t1').addEventListener('click', function(){ showSec('s1'); setTab(this); });
+  document.getElementById('t2').addEventListener('click', function(){ showSec('s2'); setTab(this); loadStorySelect(); });
+  document.getElementById('t3').addEventListener('click', function(){ showSec('s3'); setTab(this); loadTable(); });
+
+  // Toggles
+  document.getElementById('ttgl').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('ftgl').addEventListener('click', function(){
+    this.classList.toggle('on');
+    document.getElementById('ccostf').style.display = this.classList.contains('on') ? 'none' : 'block';
+  });
+
+  // Upload zones
+  document.getElementById('czone').addEventListener('click', function(){ document.getElementById('cfile').click(); });
+  document.getElementById('pzone').addEventListener('click', function(){ document.getElementById('pfiles').click(); });
+
+  document.getElementById('cfile').addEventListener('change', function(){
+    if(this.files[0]){
+      var p = document.getElementById('cprev');
+      p.src = URL.createObjectURL(this.files[0]);
+      p.style.display = 'block';
+    }
+  });
+
+  document.getElementById('pfiles').addEventListener('change', function(){
+    var wrap = document.getElementById('pprev');
+    wrap.innerHTML = '';
+    Array.from(this.files).slice(0,12).forEach(function(f){
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      wrap.appendChild(img);
+    });
+  });
+
+  // Add story
+  document.getElementById('addStoryBtn').addEventListener('click', doAddStory);
+  // Add chapter
+  document.getElementById('addChapBtn').addEventListener('click', doAddChapter);
+
+  // Check saved token
+  var saved = localStorage.getItem('mh_token');
+  if(saved){ token = saved; showPanel(); }
+});
+
+async function doLogin(){
+  var email = document.getElementById('aemail').value.trim().toLowerCase();
+  var pass = document.getElementById('apass').value;
+  var msg = document.getElementById('lmsg');
+
+  if(email !== ADMIN){ msg.className='msg err'; msg.textContent='Not authorized as admin'; return; }
+  if(!pass){ msg.className='msg err'; msg.textContent='Enter your password'; return; }
+
+  msg.className='msg ok'; msg.textContent='Logging in...';
+
+  try {
+    var res = await fetch(SURL+'/auth/v1/token?grant_type=password', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey':SKEY },
+      body: JSON.stringify({ email:email, password:pass })
+    });
+    var data = await res.json();
+    if(data.error || data.error_description){
+      msg.className='msg err';
+      msg.textContent = data.error_description || data.error;
+      return;
+    }
+    token = data.access_token;
+    localStorage.setItem('mh_token', token);
+    showPanel();
+  } catch(e){
+    msg.className='msg err';
+    msg.textContent = 'Connection error: '+e.message;
+  }
+}
+
+function showPanel(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('panel').style.display='block';
+  loadStats();
+}
+
+function showSec(id){
+  document.querySelectorAll('.sec').forEach(function(s){ s.classList.remove('on'); });
+  document.getElementById(id).classList.add('on');
+}
+
+function setTab(el){
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+}
+
+function amsg(txt, type){
+  var el = document.getElementById('amsg');
+  el.textContent = txt;
+  el.className = 'amsg '+(type==='ok'?'ok':'err');
+  if(type==='ok') setTimeout(function(){ el.className='amsg'; },5000);
+}
+
+async function api(path, method, body){
+  var opts = {
+    method: method||'GET',
+    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+token, 'Content-Type':'application/json', 'Prefer':'return=representation' }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  var res = await fetch(SURL+'/rest/v1/'+path, opts);
+  return await res.json();
+}
+
+async function loadStats(){
+  try {
+    var s = await fetch(SURL+'/rest/v1/stories?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    var sc = s.headers.get('content-range');
+    document.getElementById('ns').textContent = sc ? sc.split('/')[1] : '0';
+
+    var c = await fetch(SURL+'/rest/v1/chapters?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    var cc = c.headers.get('content-range');
+    document.getElementById('nc').textContent = cc ? cc.split('/')[1] : '0';
+
+    var u = await fetch(SURL+'/rest/v1/profiles?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    var uc = u.headers.get('content-range');
+    document.getElementById('nu').textContent = uc ? uc.split('/')[1] : '0';
+  } catch(e){ console.log('stats err',e); }
+}
+
+async function uploadFile(file, path){
+  var res = await fetch(SURL+'/storage/v1/object/manga-images/'+path, {
+    method:'POST',
+    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+token, 'Content-Type':file.type, 'x-upsert':'true' },
+    body: file
+  });
+  var data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return SURL+'/storage/v1/object/public/manga-images/'+path;
+}
+
+async function doAddStory(){
+  var title = document.getElementById('stitle').value.trim();
+  var genre = document.getElementById('sgenre').value;
+  var author = document.getElementById('sauthor').value.trim();
+  var synopsis = document.getElementById('ssynopsis').value.trim();
+  var status = document.getElementById('sstatus').value;
+  var tags = document.getElementById('stags').value.split(',').map(function(t){return t.trim();}).filter(Boolean);
+  var trending = document.getElementById('ttgl').classList.contains('on');
+  var cfile = document.getElementById('cfile').files[0];
+
+  if(!title||!genre||!author||!synopsis) return amsg('Fill all required fields','err');
+  if(!cfile) return amsg('Upload a cover image','err');
+
+  var btn = document.getElementById('addStoryBtn');
+  btn.disabled = true;
+  amsg('Uploading cover...','ok');
+
+  try {
+    var ext = cfile.name.split('.').pop();
+    var coverUrl = await uploadFile(cfile, 'covers/'+Date.now()+'.'+ext);
+    amsg('Saving story...','ok');
+    var result = await api('stories', 'POST', {
+      title, genre, author, synopsis, status, tags,
+      is_trending: trending, cover_url: coverUrl,
+      views:0, rating:4.8, chapters_count:0,
+      created_at: new Date().toISOString()
+    });
+    if(result && result[0]) {
+      amsg('✅ "'+title+'" added!','ok');
+      document.getElementById('stitle').value='';
+      document.getElementById('sauthor').value='';
+      document.getElementById('ssynopsis').value='';
+      document.getElementById('cfile').value='';
+      document.getElementById('cprev').style.display='none';
+      loadStats();
+    } else {
+      amsg('Error: '+JSON.stringify(result),'err');
+    }
+  } catch(e){ amsg('Error: '+e.message,'err'); }
+  btn.disabled = false;
+}
+
+async function loadStorySelect(){
+  try {
+    var data = await api('stories?select=id,title&order=title');
+    var sel = document.getElementById('cstory');
+    sel.innerHTML = '<option value="">Select story</option>';
+    (data||[]).forEach(function(s){
+      sel.innerHTML += '<option value="'+s.id+'">'+s.title+'</option>';
+    });
+  } catch(e){}
+}
+
+async function doAddChapter(){
+  var storyId = document.getElementById('cstory').value;
+  var epNum = document.getElementById('cnum').value;
+  var epTitle = document.getElementById('ctitle').value.trim();
+  var isFree = document.getElementById('ftgl').classList.contains('on');
+  var coinCost = isFree ? 0 : parseInt(document.getElementById('ccost').value||5);
+  var pfiles = document.getElementById('pfiles').files;
+
+  if(!storyId) return amsg('Select a story','err');
+  if(!epNum) return amsg('Enter episode number','err');
+  if(!pfiles.length) return amsg('Upload page images','err');
+
+  var btn = document.getElementById('addChapBtn');
+  btn.disabled = true;
+  var urls = [];
+
+  try {
+    for(var i=0; i<pfiles.length; i++){
+      amsg('Uploading page '+(i+1)+'/'+pfiles.length+'...','ok');
+      var f = pfiles[i];
+      var ext = f.name.split('.').pop();
+      var url = await uploadFile(f, 'chapters/'+storyId+'/ep'+epNum+'/p'+(i+1)+'.'+ext);
+      urls.push(url);
+    }
+    amsg('Saving chapter...','ok');
+    var result = await api('chapters', 'POST', {
+      story_id: storyId,
+      episode_number: parseInt(epNum),
+      title: epTitle||'Episode '+epNum,
+      is_free: isFree,
+      coin_cost: coinCost,
+      pages: urls,
+      created_at: new Date().toISOString()
+    });
+    if(result && result[0]){
+      amsg('✅ Episode '+epNum+' uploaded with '+urls.length+' pages!','ok');
+      document.getElementById('cnum').value='';
+      document.getElementById('ctitle').value='';
+      document.getElementById('pfiles').value='';
+      document.getElementById('pprev').innerHTML='';
+      loadStats();
+    } else {
+      amsg('Error: '+JSON.stringify(result),'err');
+    }
+  } catch(e){ amsg('Error: '+e.message,'err'); }
+  btn.disabled = false;
+}
+
+async function loadTable(){
+  try {
+    var data = await api('stories?select=*&order=created_at.desc');
+    var wrap = document.getElementById('stlist');
+    if(!data||!data.length){ wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">No stories yet.</div>'; return; }
+    var html = '<div style="overflow-x:auto"><table><tr><th>Cover</th><th>Title</th><th>Genre</th><th>Eps</th><th>Del</th></tr>';
+    data.forEach(function(s){
+      html += '<tr><td><img class="sthumb" src="'+s.cover_url+'" onerror="this.style.display=\'none\'"></td><td><b>'+s.title+'</b><br><small style="color:var(--muted)">'+s.author+'</small></td><td>'+s.genre+'</td><td>'+s.chapters_count+'</td><td><button class="dbtn" onclick="delStory(\''+s.id+'\',\''+s.title+'\')">Del</button></td></tr>';
+    });
+    html += '</table></div>';
+    wrap.innerHTML = html;
+  } catch(e){ document.getElementById('stlist').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">'+e.message+'</div>'; }
+}
+
+async function delStory(id, title){
+  if(!confirm('Delete "'+title+'"?')) return;
+  await api('stories?id=eq.'+id, 'DELETE');
+  amsg('"'+title+'" deleted','ok');
+  loadTable(); loadStats();
+}
+</script>
 </body>
 </html>
