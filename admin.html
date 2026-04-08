@@ -205,6 +205,26 @@ const SURL = 'https://uhjptxhhaipckshgytul.supabase.co';
 const SKEY = 'sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9';
 const ADMIN = 'andiru6996@gmail.com';
 let token = '';
+let refreshToken = '';
+
+// Auto refresh token every 50 minutes
+setInterval(async function(){
+  if(!refreshToken) return;
+  try {
+    var res = await fetch(SURL+'/auth/v1/token?grant_type=refresh_token', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SKEY},
+      body: JSON.stringify({refresh_token: refreshToken})
+    });
+    var data = await res.json();
+    if(data.access_token){
+      token = data.access_token;
+      refreshToken = data.refresh_token;
+      localStorage.setItem('mh_token', token);
+      localStorage.setItem('mh_refresh', data.refresh_token);
+    }
+  } catch(e){ console.log('Token refresh failed', e); }
+}, 50 * 60 * 1000);
 
 // INIT
 window.addEventListener('load', function() {
@@ -260,7 +280,27 @@ window.addEventListener('load', function() {
 
   // Check saved token
   var saved = localStorage.getItem('mh_token');
-  if(saved){ token = saved; showPanel(); }
+  var savedRefresh = localStorage.getItem('mh_refresh');
+  if(saved){ token = saved; refreshToken = savedRefresh || ''; showPanel(); }
+
+  // Auto refresh token every 50 minutes
+  setInterval(async function(){
+    if(!refreshToken) return;
+    try {
+      var rres = await fetch(SURL+'/auth/v1/token?grant_type=refresh_token', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SKEY},
+        body: JSON.stringify({refresh_token: refreshToken})
+      });
+      var rdata = await rres.json();
+      if(rdata.access_token){
+        token = rdata.access_token;
+        refreshToken = rdata.refresh_token || refreshToken;
+        localStorage.setItem('mh_token', token);
+        localStorage.setItem('mh_refresh', refreshToken);
+      }
+    } catch(e){ console.log('Auto refresh failed', e); }
+  }, 50 * 60 * 1000);
 });
 
 async function doLogin(){
@@ -286,7 +326,9 @@ async function doLogin(){
       return;
     }
     token = data.access_token;
+    refreshToken = data.refresh_token || '';
     localStorage.setItem('mh_token', token);
+    localStorage.setItem('mh_refresh', refreshToken);
     showPanel();
   } catch(e){
     msg.className='msg err';
