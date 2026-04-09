@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangaHive — Production Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0b;
+  --bg2: #111114;
+  --bg3: #18181d;
+  --bg4: #1f1f26;
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --gold3: #f5e4b0;
+  --goldDim: rgba(201,168,76,0.12);
+  --goldBorder: rgba(201,168,76,0.25);
+  --white: #f0ede6;
+  --muted: #7a7870;
+  --muted2: #504e4a;
+  --red: #e05252;
+  --green: #4cad7c;
+  --blue: #5b8de0;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Outfit', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ── HEADER ── */
+.header {
+  position: relative;
+  padding: 48px 48px 0;
+  z-index: 10;
+}
+
+.header-inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--goldBorder);
+  padding-bottom: 24px;
+}
+
+.logo-block {}
+
+.logo-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.logo-title {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 300;
+  color: var(--white);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.logo-title span {
+  color: var(--gold);
+}
+
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.header-meta {
+  text-align: right;
+}
+
+.header-meta-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.header-meta-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white);
+}
+
+/* ── NAV TABS ── */
+.nav {
+  display: flex;
+  gap: 0;
+  padding: 0 48px;
+  position: relative;
+  z-index: 10;
+  margin-top: 0;
+}
+
+.nav-tab {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 18px 28px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.nav-tab::before {
+  content: attr(data-num);
+  display: block;
+  font-size: 9px;
+  color: var(--muted2);
+  margin-bottom: 3px;
+  letter-spacing: 0.2em;
+}
+
+.nav-tab:hover { color: var(--white); }
+
+.nav-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ── MAIN LAYOUT ── */
+.main {
+  padding: 40px 48px 80px;
+  position: relative;
+  z-index: 10;
+}
+
+.panel { display: none; animation: fadeIn 0.3s ease; }
+.panel.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── SECTION HEADER ── */
+.section-head {
+  margin-bottom: 32px;
+}
+
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--white);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+/* ── FIELD ── */
+.field { margin-bottom: 20px; }
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+select, input[type=text], input[type=number], input[type=email], textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 300;
+  padding: 12px 16px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+
+select:focus, input:focus, textarea:focus {
+  border-color: var(--goldBorder);
+  background: var(--bg4);
+}
+
+select option { background: var(--bg3); }
+textarea { resize: vertical; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; min-height: 140px; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+  width: 100%;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  padding: 14px 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover::after { opacity: 0.1; }
+.btn-primary:active { transform: scale(0.99); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--goldBorder);
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover { background: var(--goldDim); border-color: var(--gold); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-ghost:hover { color: var(--white); border-color: var(--border2); }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.card-gold {
+  background: var(--bg2);
+  border: 1px solid var(--goldBorder);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 28px 0;
+}
+
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--goldBorder), transparent);
+  margin: 32px 0;
+}
+
+/* ── STEP INDICATOR ── */
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--goldBorder);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-content {}
+.step-label { font-size: 13px; font-weight: 500; color: var(--white); margin-bottom: 3px; }
+.step-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── PROMPT CARDS ── */
+.prompt-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+.prompt-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  transition: border-color 0.2s;
+}
+
+.prompt-item:hover { border-color: var(--goldBorder); }
+
+.prompt-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.prompt-item-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+}
+
+.prompt-item-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 1px dashed var(--border2);
+  border-radius: 8px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, var(--goldDim) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.upload-zone:hover { border-color: var(--gold); }
+.upload-zone:hover::before { opacity: 1; }
+
+.upload-icon {
+  width: 40px; height: 40px;
+  border: 1px solid var(--goldBorder);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.upload-title { font-size: 14px; font-weight: 400; color: var(--white); margin-bottom: 4px; }
+.upload-sub { font-size: 12px; color: var(--muted); }
+
+/* ── PANEL GRID ── */
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.panel-thumb {
+  aspect-ratio: 3/4;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+}
+
+.panel-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.panel-thumb-label {
+  position: absolute;
+  bottom: 4px; left: 4px;
+  background: rgba(0,0,0,0.75);
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+}
+
+/* ── STATUS ── */
+.status {
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-ok { background: rgba(76,173,124,0.1); border: 1px solid rgba(76,173,124,0.3); color: var(--green); }
+.status-err { background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3); color: var(--red); }
+.status-info { background: rgba(201,168,76,0.08); border: 1px solid var(--goldBorder); color: var(--gold); }
+
+/* ── COPY FEEDBACK ── */
+.copied { color: var(--green) !important; }
+
+/* ── PROGRESS BAR ── */
+.progress-bar {
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* ── OUTPUT AREA ── */
+.output-scroll {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.output-scroll::-webkit-scrollbar { width: 3px; }
+.output-scroll::-webkit-scrollbar-track { background: transparent; }
+.output-scroll::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-left { display: flex; align-items: center; gap: 12px; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--bg);
+  background: var(--gold);
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+
+.tag-outline {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  border: 1px solid var(--goldBorder);
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+
+/* ── STATS STRIP ── */
+.stats-strip {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.stat-item {
+  flex: 1;
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+}
+
+.stat-item:last-child { border-right: none; }
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.stat-val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--gold2);
+  line-height: 1;
+}
+
+/* ── STORY SELECTOR CARDS ── */
+.story-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.story-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.story-card:hover { border-color: var(--goldBorder); background: var(--bg3); }
+
+.story-card.selected {
+  border-color: var(--gold);
+  background: var(--goldDim);
+}
+
+.story-card-num {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 5px;
+}
+
+.story-card-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--white);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.story-card-genre {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+
+/* ── SCROLLABLE OUTPUT ── */
+#promptsOutput .output-scroll {}
+
+/* ── LOADING SPINNER ── */
+.spinner {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--goldDim);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── INLINE FLEX ── */
+.flex { display: flex; align-items: center; gap: 12px; }
+.flex-end { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.mt8 { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.mt24 { margin-top: 24px; }
+.mb16 { margin-bottom: 16px; }
+.mb24 { margin-bottom: 24px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .header { padding: 32px 24px 0; }
+  .nav { padding: 0 24px; }
+  .main { padding: 28px 24px 60px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .story-cards { grid-template-columns: repeat(2, 1fr); }
+  .panel-grid { grid-template-columns: repeat(4, 1fr); }
+  .stats-strip { flex-wrap: wrap; }
+  .logo-title { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo-block">
+      <div class="logo-eyebrow">Production Suite · v2.0</div>
+      <div class="logo-title">Manga<span>Hive</span></div>
+      <div class="logo-sub">Content Studio</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-meta-label">System Status</div>
+      <div class="header-meta-val"><span class="status-dot"></span>All systems online</div>
+      <div class="header-meta-label" style="margin-top:10px">Connected Project</div>
+      <div class="header-meta-val">uhjptxhhaipckshgytul</div>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-tab active" data-num="01" onclick="switchTab(0)">Prompt Generator</button>
+  <button class="nav-tab" data-num="02" onclick="switchTab(1)">Dialogue Studio</button>
+  <button class="nav-tab" data-num="03" onclick="switchTab(2)">Chapter Uploader</button>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 1 — PROMPT GENERATOR
+═══════════════════════════════════════════════════ -->
+<div class="panel active" id="tab0">
+
+  <div class="section-head">
+    <div class="section-num">Module 01</div>
+    <div class="section-title">Prompt Generator</div>
+    <div class="section-desc">Select a story and episode to generate all panel image prompts, ready to paste into Tensor.art or any image generator.</div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-label">Stories</div>
+      <div class="stat-val">5</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Episodes Each</div>
+      <div class="stat-val">8</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Panels / Ep</div>
+      <div class="stat-val">18</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Total Prompts</div>
+      <div class="stat-val">720</div>
+    </div>
+  </div>
+
+  <!-- Story Cards -->
+  <div class="field-label">Select Story</div>
+  <div class="story-cards" id="storyCards">
+    <div class="story-card selected" onclick="selectStory(0)">
+      <div class="story-card-num">STORY 01</div>
+      <div class="story-card-title">The Devil's Contract</div>
+      <div class="story-card-genre">Romance</div>
+    </div>
+    <div class="story-card" onclick="selectStory(1)">
+      <div class="story-card-num">STORY 02</div>
+      <div class="story-card-title">Moonlit Rival</div>
+      <div class="story-card-genre">Enemies to Lovers</div>
+    </div>
+    <div class="story-card" onclick="selectStory(2)">
+      <div class="story-card-num">STORY 03</div>
+      <div class="story-card-title">Blade and Blossom</div>
+      <div class="story-card-genre">Action / Romance</div>
+    </div>
+    <div class="story-card" onclick="selectStory(3)">
+      <div class="story-card-num">STORY 04</div>
+      <div class="story-card-title">The Last Shrine</div>
+      <div class="story-card-genre">Fantasy / Romance</div>
+    </div>
+    <div class="story-card" onclick="selectStory(4)">
+      <div class="story-card-num">STORY 05</div>
+      <div class="story-card-title">Hollow Crown</div>
+      <div class="story-card-genre">Drama / Thriller</div>
+    </div>
+  </div>
+
+  <div class="grid-3 mb24">
+    <div class="field">
+      <label class="field-label">Episode</label>
+      <select id="episodeSelect"></select>
+    </div>
+    <div class="field">
+      <label class="field-label">Art Style</label>
+      <select id="styleSelect">
+        <option value="manga">REX DEVIN CARTOON (Manga)</option>
+        <option value="webtoon">Webtoon — Color, Soft Lines</option>
+        <option value="shonen">Shōnen — Dynamic, Bold</option>
+        <option value="josei">Josei — Elegant, Detailed</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Panel Count</label>
+      <select id="panelCount">
+        <option value="12">12 panels</option>
+        <option value="18" selected>18 panels</option>
+        <option value="24">24 panels</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="generatePrompts()">Generate All Prompts →</button>
+
+  <div id="promptsOutput"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 2 — DIALOGUE STUDIO
+═══════════════════════════════════════════════════ -->
+<div class="panel" id="tab1">
+
+  <div class="section-head">
+    <div class="section-num">Module 02</div>
+    <div class="section-title">Dialogue Studio</div>
+    <div class="section-desc">Upload your raw manga panels, paste the episode script, and the studio will place speech bubbles automatically across all panels.</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-label">Upload Panels</div>
+          <div class="step-desc">Upload all panels in order (p1.png → p18.png). Multiple files supported.</div>
+        </div>
+      </div>
+
+      <div class="upload-zone" onclick="document.getElementById('panelUpload').click()" id="uploadZone">
+        <div class="upload-icon">↑</div>
+        <div class="upload-title">Drop panels here or click to browse</div>
+        <div class="upload-sub">PNG / JPG · Multiple files · Auto-sorted by filename number</div>
+        <input type="file" id="panelUpload" multiple accept="image/*" style="display:none" onchange="handlePanels(event)">
+      </div>
+
+      <div class="panel-grid" id="panelGrid"></div>
+
+      <div class="step-row mt16">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-label">Bubble Style</div>
+          <div class="step-desc">Choose font, size, and bubble colors.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label">Font</label>
+          <select id="bubbleFont">
+            <option value="Bangers">Bangers (Manga)</option>
+            <option value="Arial Black">Arial Black</option>
+            <option value="Georgia">Georgia (Serif)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Font Size</label>
+          <select id="bubbleFontSize">
+            <option value="20">20px — Small</option>
+            <option value="26" selected>26px — Default</option>
+            <option value="32">32px — Large</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Bubble Fill</label>
+          <select id="bubbleColor">
+            <option value="white">White (Classic)</option>
+            <option value="#fffde7">Cream (Warm)</option>
+            <option value="#e3f2fd">Ice Blue</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Text Color</label>
+          <select id="textColor">
+            <option value="#111111">Ink Black</option>
+            <option value="#1a237e">Deep Navy</option>
+            <option value="#4a148c">Manga Purple</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-label">Paste Episode Script</div>
+          <div class="step-desc">Use PANEL N / CHARACTER: dialogue format.</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px;margin-bottom:16px;">
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);line-height:1.9;">
+          PANEL 1<br>
+          HANA: I can't believe I agreed to this.<br>
+          ETHAN: You didn't have a choice.<br><br>
+          PANEL 2<br>
+          HANA: There's always a choice.
+        </div>
+      </div>
+
+      <textarea id="dialogueScript" placeholder="Paste your episode script here...
+Use format:
+PANEL 1
+CHARACTER: dialogue line
+CHARACTER 2: response
+
+PANEL 2
+CHARACTER: next line"></textarea>
+
+      <button class="btn-primary mt16" onclick="processDialogue()">Apply Dialogue to All Panels →</button>
+      <div id="dialogueOutput"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 3 — CHAPTER UPLOADER
+═══════════════════════════════════════════════════ -->
+<div class="panel" id="tab2">
+
+  <div class="section-head">
+    <div class="section-num">Module 03</div>
+    <div class="section-title">Chapter Uploader</div>
+    <div class="section-desc">Upload panel images to Supabase Storage and create the chapter database entry — all in one step.</div>
+  </div>
+
+  <div class="card-gold mb24">
+    <div class="flex mb16">
+      <div class="tag">Credentials</div>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">Pre-filled from your project</span>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label">Supabase URL</label>
+        <input type="text" id="sbUrl" value="https://uhjptxhhaipckshgytul.supabase.co">
+      </div>
+      <div class="field">
+        <label class="field-label">Anon Key</label>
+        <input type="text" id="sbKey" value="sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9">
+      </div>
+    </div>
+    <button class="btn-secondary" onclick="initSupabase()" style="width:auto">Connect to Supabase →</button>
+    <div id="sbStatus"></div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="field-label" style="margin-bottom:16px">Chapter Details</div>
+
+      <div class="field">
+        <label class="field-label">Story</label>
+        <select id="uploadStory">
+          <option value="">— Select Story —</option>
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label">Episode Number</label>
+          <input type="number" id="uploadEp" min="1" max="8" placeholder="1">
+        </div>
+        <div class="field">
+          <label class="field-label">Free Episode?</label>
+          <select id="uploadFree">
+            <option value="true">Yes — Free (Ep 1–3)</option>
+            <option value="false">No — Locked</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Episode Title</label>
+        <input type="text" id="uploadTitle" placeholder="e.g. The Contract">
+      </div>
+
+      <div class="field">
+        <label class="field-label">Coin Cost</label>
+        <input type="number" id="uploadCost" value="5" min="0">
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label" style="margin-bottom:16px">Panel Images</div>
+
+      <div class="step-row">
+        <div class="step-num">A</div>
+        <div class="step-content">
+          <div class="step-label">Auto Upload to Storage</div>
+          <div class="step-desc">Select files — they upload directly to your manga-images bucket and URLs are filled in automatically.</div>
+        </div>
+      </div>
+
+      <button class="btn-secondary mt8 mb16" onclick="document.getElementById('bulkUpload').click()" style="width:100%">
+        Select &amp; Upload Images to Supabase →
+      </button>
+      <input type="file" id="bulkUpload" multiple accept="image/*" style="display:none" onchange="uploadToStorage(event)">
+
+      <div id="uploadProgressWrap" style="display:none">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--gold);margin-bottom:6px" id="uploadProgressText">Uploading...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="step-row">
+        <div class="step-num">B</div>
+        <div class="step-content">
+          <div class="step-label">Or Paste URLs Manually</div>
+          <div class="step-desc">One public URL per line.</div>
+        </div>
+      </div>
+
+      <textarea id="imageUrls" style="margin-top:10px;min-height:120px" placeholder="https://uhjptxhhaipckshgytul.supabase.co/storage/v1/object/public/manga-images/p1.png
+https://.../p2.png
+..."></textarea>
+    </div>
+  </div>
+
+  <div class="divider-gold"></div>
+  <button class="btn-primary" onclick="createChapter()">Create Chapter in Database →</button>
+  <div id="uploadStatus"></div>
+</div>
+
+</main>
+
+<script>
+// ═══════════════════════
+// DATA
+// ═══════════════════════
+const STORIES = [
+  {
+    title:"The Devil's Contract", genre:"Romance",
+    chars:{f:"Hana Yoshida",m:"Ethan Blackwood",s:["Yuki","James Cole"]},
+    setting:"luxury skyscraper office, architectural firm, modern Tokyo cityscape, glass corridors",
+    episodes:[
+      {n:1,t:"The Contract",s:"Struggling architect Hana signs contract with cold billionaire Ethan to design his tower and erase her father's 40M yen debt"},
+      {n:2,t:"First Night at the Office",s:"Hana starts working late at Ethan's tower, professional tension rises"},
+      {n:3,t:"The Almost Kiss",s:"A charged moment between Hana and Ethan is interrupted"},
+      {n:4,t:"Secrets Exposed",s:"Ethan's hidden past is revealed"},
+      {n:5,t:"Broken Walls",s:"Emotional walls start crumbling for both characters"},
+      {n:6,t:"The Fiancée Returns",s:"Ethan's past fiancée reappears causing conflict"},
+      {n:7,t:"Confessions at Midnight",s:"One character finally confesses their feelings"},
+      {n:8,t:"No Going Back",s:"Both choose each other despite all consequences"}
+    ]
+  },
+  {
+    title:"Moonlit Rival", genre:"Enemies to Lovers",
+    chars:{f:"Sakura Nakamura",m:"Kai Anderson",s:["Mia Chen","Dev"]},
+    setting:"modern design studio, shared apartment interior, urban streets at night, coffee shops",
+    episodes:[
+      {n:1,t:"Worst Surprise",s:"College rivals discover they must co-own mentor's design firm and share an apartment for one year"},
+      {n:2,t:"One Roof Two Enemies",s:"First chaotic night living together, rules are demanded"},
+      {n:3,t:"The Rules",s:"They draft absurd living rules but keep breaking every one"},
+      {n:4,t:"Cracks in the Armor",s:"Rivals help each other in a crisis, armor begins cracking"},
+      {n:5,t:"Caught Off Guard",s:"Unexpected tender moment catches both completely off guard"},
+      {n:6,t:"The Night of the Storm",s:"Stranded together in a storm, defenses collapse entirely"},
+      {n:7,t:"Dev's Secret",s:"Mystery heir Dev's true motives are finally revealed"},
+      {n:8,t:"No Going Back",s:"Love chosen over rivalry"}
+    ]
+  },
+  {
+    title:"Blade and Blossom", genre:"Action / Romance",
+    chars:{f:"Lily Harper",m:"Ren Takahashi",s:["Shadow","Director Cross"]},
+    setting:"rain-soaked city alleyways, rooftop chase, FBI facility corridors, industrial warehouse",
+    episodes:[
+      {n:1,t:"Wrong Target",s:"Assassin Ren refuses hit on a school. FBI agent Lily captures him. Shadow's men immediately attack both"},
+      {n:2,t:"No Such Thing as Trust",s:"Forced alliance as both are hunted, neither trusts the other"},
+      {n:3,t:"The List",s:"They discover a kill list — Lily's name is on it"},
+      {n:4,t:"Run Together",s:"Chase across the city, they save each other instinctively"},
+      {n:5,t:"Who Do You Trust",s:"Ren's past with Shadow revealed — was he the villain all along?"},
+      {n:6,t:"Shadow Strikes",s:"Ambush — Ren takes a hit meant for Lily"},
+      {n:7,t:"Confession at Gunpoint",s:"Cornered, feelings confessed before what looks like the end"},
+      {n:8,t:"Last Mission",s:"Final confrontation with Shadow — they choose each other"}
+    ]
+  },
+  {
+    title:"The Last Shrine", genre:"Fantasy / Romance",
+    chars:{f:"Yumi Asano",m:"Cole Winters",s:["Fox Spirit","Kenji"]},
+    setting:"ancient Japanese shrine grounds, misty enchanted forest, glowing spirit caves, sacred mountain peak",
+    episodes:[
+      {n:1,t:"The Seal Breaks",s:"American archaeologist Cole accidentally breaks the shrine seal, releasing Fox Spirit and a dark entity"},
+      {n:2,t:"The Fox's Terms",s:"Fox Spirit sets conditions — Yumi and Cole must journey together to reseal"},
+      {n:3,t:"Into the Forest",s:"First leg of journey through enchanted forest, Yumi and Cole constantly clash"},
+      {n:4,t:"Eastern Caves",s:"Navigating dangerous magical caves, forced to rely on each other"},
+      {n:5,t:"The Dark That Woke",s:"The released dark entity attacks, showing terrifying true power"},
+      {n:6,t:"Kenji's Secret",s:"Childhood friend Kenji reveals a hidden connection to the original seal"},
+      {n:7,t:"Moonfire Night",s:"Sacred ritual under supernatural moonfire — feelings surface"},
+      {n:8,t:"The Last Seal",s:"Final sacrifice and sealing — love chosen over duty"}
+    ]
+  },
+  {
+    title:"Hollow Crown", genre:"Drama / Thriller",
+    chars:{f:"Nora Hayashi",m:"Marcus Reed",s:["Senator Voss","Jin"]},
+    setting:"Washington DC streets, newspaper office at night, government corridor, safe house interior",
+    episodes:[
+      {n:1,t:"The File",s:"Journalist Nora receives planted evidence against senator Marcus who reveals a far bigger conspiracy"},
+      {n:2,t:"Every Lie Has a Name",s:"Both hunted as they trace who planted the file"},
+      {n:3,t:"Off the Grid",s:"They go completely dark — paranoia at its peak"},
+      {n:4,t:"The Network",s:"The conspiracy's full scale revealed — it goes all the way to the top"},
+      {n:5,t:"Someone is Watching",s:"Nora realizes editor Jin may have been tracking them all along"},
+      {n:6,t:"Jin's True Face",s:"Jin's true allegiance is finally exposed"},
+      {n:7,t:"Voss Strikes",s:"Senator Voss makes a direct move to silence them permanently"},
+      {n:8,t:"The Broadcast",s:"The story airs — but at what cost?"}
+    ]
+  }
+];
+
+const STYLE_TAGS = {
+  manga: "manga panel, black and white ink art, REX DEVIN CARTOON model, clean precise linework, screentone shading, dynamic composition, expressive detailed eyes, no LoRA",
+  webtoon: "webtoon full color art, soft cel-shading, clean outlines, pastel color palette, vertical panel format, highly expressive character emotions",
+  shonen: "shōnen manga panel, bold heavy linework, dynamic action poses, speed lines, high contrast black and white ink, expressive intense faces",
+  josei: "josei manga style, elegant detailed linework, realistic facial features, soft grey tones, refined composition, emotional atmospheric lighting"
+};
+
+const NEGATIVE = "blurry, low quality, text, watermark, signature, 3d render, photorealistic, extra fingers, deformed, ugly";
+
+let selectedStory = 0;
+let loadedPanels = [];
+let processedCanvases = [];
+let sbClient = null;
+
+// ═══════════════════════
+// TABS
+// ═══════════════════════
+function switchTab(i) {
+  document.querySelectorAll('.nav-tab').forEach((t,j) => t.classList.toggle('active', i===j));
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('active', i===j));
+}
+
+// ═══════════════════════
+// STORY SELECTION
+// ═══════════════════════
+function selectStory(i) {
+  selectedStory = i;
+  document.querySelectorAll('.story-card').forEach((c,j) => c.classList.toggle('selected', i===j));
+  updateEpisodes();
+}
+
+function updateEpisodes() {
+  const sel = document.getElementById('episodeSelect');
+  sel.innerHTML = STORIES[selectedStory].episodes.map(e =>
+    `<option value="${e.n}">Ep ${e.n} — ${e.t}</option>`
+  ).join('');
+}
+
+updateEpisodes();
+
+// ═══════════════════════
+// PROMPT GENERATOR
+// ═══════════════════════
+function generatePrompts() {
+  const epN = parseInt(document.getElementById('episodeSelect').value);
+  const style = document.getElementById('styleSelect').value;
+  const count = parseInt(document.getElementById('panelCount').value);
+  const story = STORIES[selectedStory];
+  const ep = story.episodes.find(e => e.n === epN);
+  const styleTag = STYLE_TAGS[style];
+  const scenes = buildScenes(story, ep, count);
+
+  const container = document.getElementById('promptsOutput');
+  container.innerHTML = `
+    <div class="divider-gold"></div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="tag">${story.title}</span>
+        <span class="tag-outline">Ep ${ep.n}: ${ep.t}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${count} prompts generated</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-ghost" onclick="copyAllPrompts()">Copy All</button>
+        <button class="btn-secondary" onclick="downloadPromptsFile()">Download .txt</button>
+      </div>
+    </div>
+    <div class="output-scroll prompt-list" id="promptList"></div>
+  `;
+
+  const list = document.getElementById('promptList');
+  scenes.forEach((scene, i) => {
+    const full = `${styleTag}, ${story.setting}, ${story.chars.f}, ${story.chars.m}, ${scene}\n\nNegative prompt: ${NEGATIVE}`;
+    const item = document.createElement('div');
+    item.className = 'prompt-item';
+    item.innerHTML = `
+      <div class="prompt-item-head">
+        <span class="prompt-item-num">PANEL ${String(i+1).padStart(2,'0')}</span>
+        <button class="btn-ghost" style="padding:5px 12px" onclick="copyOne(this, ${i})">Copy</button>
+      </div>
+      <div class="prompt-item-text" id="prompt-${i}">${full}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  window._prompts = scenes.map((s,i) => {
+    return `=== PANEL ${i+1} ===\n${styleTag}, ${story.setting}, ${story.chars.f}, ${story.chars.m}, ${s}\n\nNegative: ${NEGATIVE}`;
+  });
+}
+
+function buildScenes(story, ep, count) {
+  const f = story.chars.f, m = story.chars.m;
+  const set = story.setting;
+  const base = [
+    `wide establishing shot — ${set}, atmospheric cinematic framing, no characters`,
+    `${f} close-up portrait, expressive emotional face, detailed eyes, slight tension in expression`,
+    `${m} medium shot, strong confident posture, intense gaze, ${set} behind`,
+    `${f} and ${m} facing each other, medium two-shot, visible tension and chemistry between them`,
+    `${f} reaction shot — surprised expression, eyes wide, dramatic lighting from side`,
+    `${m} intense close-up — jaw tight, eyes determined or cold, dramatic shadow on face`,
+    `key dramatic moment — ${ep.s.split('.')[0]} — dynamic perspective angle`,
+    `environment detail panel — ${set}, atmospheric mood, empty space, cinematic framing`,
+    `dynamic action or movement panel — motion blur lines, single character mid-motion`,
+    `emotional exchange — both ${f} and ${m} in frame, medium shot, vulnerable expressions`,
+    `meaningful object close-up — hands, documents, or symbolic item — no faces`,
+    `${f} turning away or walking — elegant backshot, hair in motion, emotional distance`,
+    `${m} hand reaching out toward camera — hesitation and longing in the gesture`,
+    `dramatic lighting panel — deep shadows, single harsh light source, noir mood`,
+    `${story.chars.s[0]||'supporting character'} cameo panel — their reaction or warning expression`,
+    `tension climax panel — wide shot, ${f} and ${m} in conflict or charged moment — ${ep.s}`,
+    `quiet aftermath — one character alone, small figure in large space, contemplative silence`,
+    `final cliffhanger — extreme close-up of one character's eyes, intense emotion, fade-in shadows`
+  ];
+  while (base.length < count) base.push(`continuation panel — ${set}, ${f} and ${m} in scene, mood continuation`);
+  return base.slice(0, count);
+}
+
+function copyOne(btn, i) {
+  const text = document.getElementById(`prompt-${i}`).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function copyAllPrompts() {
+  const all = window._prompts?.join('\n\n━━━━━━━━━━━━━━━━━━\n\n') || '';
+  navigator.clipboard.writeText(all);
+}
+
+function downloadPromptsFile() {
+  const story = STORIES[selectedStory];
+  const epN = parseInt(document.getElementById('episodeSelect').value);
+  const ep = story.episodes.find(e => e.n === epN);
+  const text = window._prompts?.join('\n\n━━━━━━━━━━━━━━━━━━\n\n') || '';
+  const blob = new Blob([text], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${story.title.replace(/\s+/g,'_')}_Ep${epN}_prompts.txt`;
+  a.click();
+}
+
+// ═══════════════════════
+// DIALOGUE STUDIO
+// ═══════════════════════
+function handlePanels(e) {
+  const files = Array.from(e.target.files).sort((a,b) => {
+    const na = parseInt(a.name.match(/\d+/)?.[0] || 0);
+    const nb = parseInt(b.name.match(/\d+/)?.[0] || 0);
+    return na - nb;
+  });
+  loadedPanels = files;
+  const grid = document.getElementById('panelGrid');
+  grid.innerHTML = '';
+  files.forEach((f, i) => {
+    const url = URL.createObjectURL(f);
+    const d = document.createElement('div');
+    d.className = 'panel-thumb';
+    d.innerHTML = `<img src="${url}" loading="lazy"><span class="panel-thumb-label">P${i+1}</span>`;
+    grid.appendChild(d);
+  });
+  document.getElementById('uploadZone').style.borderColor = 'var(--gold)';
+  document.getElementById('uploadZone').style.background = 'var(--goldDim)';
+}
+
+function parseScript(raw) {
+  const panels = {};
+  let cur = null;
+  raw.split('\n').forEach(line => {
+    const pm = line.match(/^PANEL\s+(\d+)/i);
+    if (pm) { cur = parseInt(pm[1]); panels[cur] = []; }
+    else if (cur !== null) {
+      const dm = line.match(/^([A-Z][A-Z\s]+):\s*(.+)/);
+      if (dm) panels[cur].push({ char: dm[1].trim(), text: dm[2].trim() });
+    }
+  });
+  return panels;
+}
+
+function processDialogue() {
+  if (!loadedPanels.length) {
+    document.getElementById('dialogueOutput').innerHTML = '<div class="status status-err">Upload panels first.</div>';
+    return;
+  }
+  const script = document.getElementById('dialogueScript').value.trim();
+  if (!script) {
+    document.getElementById('dialogueOutput').innerHTML = '<div class="status status-err">Paste your episode script first.</div>';
+    return;
+  }
+  const parsed = parseScript(script);
+  const font = document.getElementById('bubbleFont').value;
+  const fontSize = parseInt(document.getElementById('bubbleFontSize').value);
+  const bubColor = document.getElementById('bubbleColor').value;
+  const txtColor = document.getElementById('textColor').value;
+
+  document.getElementById('dialogueOutput').innerHTML = `<div class="status status-info"><span class="spinner"></span> Processing ${loadedPanels.length} panels...</div>`;
+
+  processedCanvases = [];
+  let done = 0;
+
+  loadedPanels.forEach((file, idx) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const dialogues = parsed[idx + 1] || [];
+      const yStep = Math.floor(img.height / (dialogues.length + 1));
+
+      dialogues.forEach((d, di) => {
+        ctx.font = `bold ${fontSize}px "${font}"`;
+        const maxW = img.width * 0.65;
+        const lines = wrapText(ctx, d.text, maxW);
+        const lh = fontSize + 6;
+        const longestLine = lines.reduce((a,b) => ctx.measureText(a).width > ctx.measureText(b).width ? a : b, '');
+        const bw = Math.min(maxW + 32, ctx.measureText(longestLine).width + 40);
+        const bh = lines.length * lh + 24;
+        const bx = di % 2 === 0 ? 20 : img.width - bw - 20;
+        const by = yStep * (di + 1) - bh / 2;
+
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = bubColor;
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+        ctx.lineWidth = 2.5;
+        roundRect(ctx, bx, by, bw, bh, 14);
+        ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = txtColor;
+        ctx.font = `bold ${fontSize}px "${font}"`;
+        ctx.textBaseline = 'top';
+        lines.forEach((l, li) => ctx.fillText(l, bx + 16, by + 12 + li * lh));
+      });
+
+      processedCanvases[idx] = canvas;
+      done++;
+      if (done === loadedPanels.length) showProcessed();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' ');
+  let line = '';
+  const lines = [];
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function showProcessed() {
+  const grid = document.getElementById('panelGrid');
+  grid.innerHTML = '';
+  processedCanvases.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'panel-thumb';
+    const img = document.createElement('img');
+    img.src = c.toDataURL();
+    const lbl = document.createElement('span');
+    lbl.className = 'panel-thumb-label'; lbl.textContent = `P${i+1}`;
+    d.appendChild(img); d.appendChild(lbl);
+    grid.appendChild(d);
+  });
+  document.getElementById('dialogueOutput').innerHTML = `
+    <div class="status status-ok">All ${processedCanvases.length} panels processed successfully.</div>
+    <button class="btn-primary mt16" onclick="downloadAll()">Download All Panels →</button>
+  `;
+}
+
+async function downloadAll() {
+  for (let i = 0; i < processedCanvases.length; i++) {
+    const a = document.createElement('a');
+    a.href = processedCanvases[i].toDataURL('image/png');
+    a.download = `p${i+1}.png`;
+    a.click();
+    await new Promise(r => setTimeout(r, 180));
+  }
+}
+
+// ═══════════════════════
+// CHAPTER UPLOADER
+// ═══════════════════════
+function initSupabase() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  if (!url || !key) { showSbStatus('err', 'Fill in Supabase URL and key first.'); return; }
+  try {
+    sbClient = supabase.createClient(url, key);
+    loadStoriesFromDb();
+    showSbStatus('ok', 'Connected successfully. Stories loading...');
+  } catch(e) {
+    showSbStatus('err', 'Connection failed: ' + e.message);
+  }
+}
+
+function showSbStatus(type, msg) {
+  const icons = { ok:'✓', err:'✗', info:'◉' };
+  document.getElementById('sbStatus').innerHTML = `<div class="status status-${type}" style="margin-top:12px">${icons[type]} ${msg}</div>`;
+}
+
+async function loadStoriesFromDb() {
+  if (!sbClient) return;
+  const { data, error } = await sbClient.from('stories').select('id,title').order('created_at');
+  if (error || !data) { showSbStatus('err', 'Could not load stories: ' + (error?.message||'unknown')); return; }
+  const sel = document.getElementById('uploadStory');
+  sel.innerHTML = '<option value="">— Select Story —</option>' +
+    data.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+  showSbStatus('ok', `Connected. ${data.length} stories loaded.`);
+}
+
+async function uploadToStorage(e) {
+  if (!sbClient) { alert('Connect to Supabase first.'); return; }
+  const files = Array.from(e.target.files).sort((a,b) => {
+    const na = parseInt(a.name.match(/\d+/)?.[0]||0);
+    const nb = parseInt(b.name.match(/\d+/)?.[0]||0);
+    return na - nb;
+  });
+
+  const wrap = document.getElementById('uploadProgressWrap');
+  const text = document.getElementById('uploadProgressText');
+  const fill = document.getElementById('progressFill');
+  wrap.style.display = 'block';
+
+  const urls = [];
+  for (let i = 0; i < files.length; i++) {
+    text.textContent = `Uploading panel ${i+1} of ${files.length}...`;
+    fill.style.width = `${Math.round(((i) / files.length) * 100)}%`;
+
+    const f = files[i];
+    const path = `chapters/${Date.now()}_${i+1}.png`;
+    const { data, error } = await sbClient.storage.from('manga-images').upload(path, f, { contentType: f.type, upsert: true });
+    if (error) { text.textContent = `Error on panel ${i+1}: ${error.message}`; return; }
+    const { data: pub } = sbClient.storage.from('manga-images').getPublicUrl(path);
+    urls.push(pub.publicUrl);
+  }
+
+  fill.style.width = '100%';
+  text.textContent = `${files.length} panels uploaded successfully.`;
+  document.getElementById('imageUrls').value = urls.join('\n');
+}
+
+async function createChapter() {
+  if (!sbClient) { initSupabase(); return; }
+  const storyId = document.getElementById('uploadStory').value;
+  const epNum = parseInt(document.getElementById('uploadEp').value);
+  const title = document.getElementById('uploadTitle').value.trim();
+  const isFree = document.getElementById('uploadFree').value === 'true';
+  const cost = parseInt(document.getElementById('uploadCost').value);
+  const urlsRaw = document.getElementById('imageUrls').value.trim();
+
+  if (!storyId || !epNum || !title || !urlsRaw) {
+    document.getElementById('uploadStatus').innerHTML = '<div class="status status-err">Fill in all fields and provide image URLs.</div>';
+    return;
+  }
+
+  const pages = urlsRaw.split('\n').map(u => u.trim()).filter(Boolean);
+  document.getElementById('uploadStatus').innerHTML = `<div class="status status-info"><span class="spinner"></span> Creating chapter with ${pages.length} panels...</div>`;
+
+  const { data, error } = await sbClient.from('chapters').insert({
+    story_id: storyId, episode_number: epNum, title, pages, is_free: isFree, coin_cost: cost
+  }).select();
+
+  if (error) {
+    document.getElementById('uploadStatus').innerHTML = `<div class="status status-err">Error: ${error.message}</div>`;
+    return;
+  }
+
+  await sbClient.from('stories').update({ chapters_count: epNum }).eq('id', storyId);
+
+  document.getElementById('uploadStatus').innerHTML = `
+    <div class="status status-ok">
+      ✓ Chapter "${title}" created with ${pages.length} panels. Chapter ID: ${data[0]?.id?.slice(0,8)}...
+    </div>
+  `;
+  document.getElementById('imageUrls').value = '';
+}
+
+// Auto-init supabase on load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    try {
+      const url = document.getElementById('sbUrl').value.trim();
+      const key = document.getElementById('sbKey').value.trim();
+      if (url && key) {
+        sbClient = supabase.createClient(url, key);
+        loadStoriesFromDb();
+      }
+    } catch(e) {}
+  }, 800);
+});
+</script>
+</body>
+</html>
