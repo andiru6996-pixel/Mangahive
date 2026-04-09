@@ -1213,7 +1213,6 @@ function buildImageGrid() {
 }
 
 async function startGeneration() {
-  const token = '';
   if (!prompts.length) { buildPrompts(); }
   isRunning = true; isPaused = false; shouldStop = false;
   genDone = 0; genFail = 0; genStart = Date.now();
@@ -1223,47 +1222,61 @@ async function startGeneration() {
   const steps = parseInt(document.getElementById('steps').value);
   const cfg = parseFloat(document.getElementById('cfg').value);
   const neg = document.getElementById('negPrompt').value;
-  const delayMs = parseInt(document.getElementById('delay').value) * 1000;
+  // PARALLEL BATCH SIZE — 3 at once for 3x speed
+  const BATCH = 3;
+
   document.getElementById('btnGenerate').disabled = true;
   document.getElementById('btnPause').style.display = 'inline-block';
   document.getElementById('progressCard').style.display = 'block';
   document.getElementById('btnDlAll').disabled = true;
   document.getElementById('btnS3Next').disabled = true;
 
-  for (let i = 0; i < prompts.length; i++) {
+  // Mark all as loading immediately so user sees activity
+  prompts.forEach((_, i) => setCellLoading(i));
+
+  // Generate in parallel batches of BATCH size
+  for (let i = 0; i < prompts.length; i += BATCH) {
     if (shouldStop) break;
     while (isPaused) await sleep(500);
-    setCellLoading(i);
-    updateProgress(i, prompts.length, prompts[i]);
-    // Use character seed for panels featuring primary character
-    const seedKey = i % 2 === 0 ? 'f' : 'm';
-    const seed = charSeeds[seedKey] || undefined;
-    try {
-      const blob = await callHF(token, model, prompts[i], neg, w, h, steps, cfg, seed);
-      results[i] = { blob };
-      setCellDone(i, blob);
-      genDone++;
-    } catch(e) {
-      results[i] = { error: e.message };
-      setCellError(i, e.message);
-      genFail++;
-    }
-    document.getElementById('stDone').textContent = genDone;
-    document.getElementById('stFail').textContent = genFail;
-    document.getElementById('stQueue').textContent = Math.max(0, prompts.length - i - 1);
-    if (i < prompts.length - 1 && !shouldStop) await sleep(delayMs);
+
+    const batchIndices = [];
+    for (let j = i; j < Math.min(i + BATCH, prompts.length); j++) batchIndices.push(j);
+
+    // Fire all in batch simultaneously
+    const batchPromises = batchIndices.map(async (idx) => {
+      const seedKey = idx % 2 === 0 ? 'f' : 'm';
+      const seed = charSeeds[seedKey] || undefined;
+      try {
+        const blob = await callHF('', model, prompts[idx], neg, w, h, steps, cfg, seed);
+        results[idx] = { blob };
+        setCellDone(idx, blob);
+        genDone++;
+      } catch(e) {
+        results[idx] = { error: e.message };
+        setCellError(idx, e.message);
+        genFail++;
+      }
+      document.getElementById('stDone').textContent = genDone;
+      document.getElementById('stFail').textContent = genFail;
+      document.getElementById('stQueue').textContent = Math.max(0, prompts.length - genDone - genFail);
+      updateProgressBatch(genDone + genFail, prompts.length);
+    });
+
+    await Promise.all(batchPromises);
+
+    // Small gap between batches to avoid rate limiting
+    if (i + BATCH < prompts.length && !shouldStop) await sleep(2000);
   }
 
   isRunning = false;
   document.getElementById('btnGenerate').disabled = false;
   document.getElementById('btnGenerate').textContent = 'Regenerate All →';
   document.getElementById('btnPause').style.display = 'none';
-  document.getElementById('progLabel').textContent = `Complete — ${genDone} panels generated`;
+  document.getElementById('progLabel').textContent = `Complete — ${genDone} panels generated, ${genFail} failed`;
   document.getElementById('progFill').style.width = '100%';
   if (genDone > 0) {
     document.getElementById('btnDlAll').disabled = false;
     document.getElementById('btnS3Next').disabled = false;
-    // Auto-transfer panels to dialogue stage
     autoTransferPanels();
     showToast(`${genDone} panels done! Proceed to Dialogue →`, 'ok');
   }
@@ -1289,6 +1302,20 @@ function resetGeneration() {
   document.getElementById('btnDlAll').disabled = true;
   document.getElementById('btnS3Next').disabled = true;
   buildImageGrid();
+}
+
+function updateProgressBatch(done, total) {
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progFrac').textContent = `${done} / ${total}`;
+  document.getElementById('progLabel').textContent = `Generating... ${done} of ${total} complete`;
+  if (genStart && done > 0) {
+    const elapsed = Date.now() - genStart;
+    const perImg = elapsed / done;
+    const rem = (total - done) * perImg;
+    const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('progInfo').textContent = `~${m}m ${s}s remaining · 3 panels generating in parallel`;
+  }
 }
 
 function updateProgress(i, total, prompt) {
