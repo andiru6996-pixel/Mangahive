@@ -517,20 +517,19 @@ input[type=range]::-webkit-slider-thumb {
     <div class="logo-suite">Production Suite</div>
   </div>
   <div class="header-right">
-    <div class="hdr-token-wrap">
-      <span class="hdr-token-label">HF</span>
-      <input type="text" class="hdr-token-input" id="hfToken" placeholder="hf_token_here..." oninput="tokenChanged()">
+    <div class="hdr-token-wrap" style="background:var(--goldDim);border-color:var(--goldBorder)">
+      <span class="hdr-token-label" style="color:var(--green)">ENGINE</span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2)">Pollinations.ai — No token needed</span>
     </div>
     <select id="modelSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:190px;letter-spacing:.05em;">
-      <option value="Linaqruf/anything-v3.0">Anything V3 (Manga)</option>
-      <option value="andite/anything-v4.0">Anything V4</option>
-      <option value="Ojimi/anime-kawai-diffusion">Anime Kawai</option>
-      <option value="hakurei/waifu-diffusion">Waifu Diffusion</option>
-      <option value="dreamlike-art/dreamlike-anime-1.0">Dreamlike Anime</option>
+      <option value="flux-anime">Flux Anime (Manga)</option>
+      <option value="any-dark">Any Dark (Action/Thriller)</option>
+      <option value="flux-realism">Flux Realism (Detailed)</option>
+      <option value="flux">Flux (General)</option>
     </select>
     <div class="hdr-status">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">—</span>
+      <div class="status-dot online" id="statusDot"></div>
+      <span id="statusText">Ready</span>
     </div>
   </div>
 </header>
@@ -1607,53 +1606,41 @@ function startNewEpisode() {
 }
 
 // ══════════════════════════════════════════
-// HF API
+// IMAGE GENERATION — Pollinations.ai (no token, no CORS, works from browser)
 // ══════════════════════════════════════════
 async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
-  const body = { inputs: prompt, parameters: { negative_prompt: neg, width: w, height: h, num_inference_steps: steps, guidance_scale: cfg, ...(seed ? { seed } : {}) } };
+  return callPollinations(prompt, neg, w, h, seed, model);
+}
+
+async function callPollinations(prompt, neg, w, h, seed, modelHint) {
+  let polModel = 'flux-anime';
+  if (modelHint && (modelHint.includes('dreamlike') || modelHint.includes('dark'))) polModel = 'any-dark';
+  if (modelHint && modelHint.includes('realism')) polModel = 'flux-realism';
+
+  const negPart = neg ? ` --no ${neg.substring(0, 80)}` : '';
+  const fullPrompt = encodeURIComponent(prompt + negPart);
+  const useSeed = seed || Math.floor(Math.random() * 99999);
+  const url = `https://image.pollinations.ai/prompt/${fullPrompt}?model=${polModel}&width=${w}&height=${h}&seed=${useSeed}&nologo=true&enhance=true&private=true`;
+
   let retries = 4;
   while (retries > 0) {
-    let res;
     try {
-      res = await fetch(url, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-Wait-For-Model': 'true'
-        },
-        body: JSON.stringify(body)
-      });
-    } catch(fetchErr) {
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.type.startsWith('image/')) return blob;
+        throw new Error('Non-image response');
+      }
+      if (res.status === 429) { await sleep(10000); retries--; continue; }
+      if (res.status >= 500) { await sleep(6000); retries--; continue; }
+      throw new Error(`HTTP ${res.status}`);
+    } catch(e) {
       retries--;
-      if (retries === 0) throw new Error('Network error — check your internet or HF may be down');
-      await sleep(3000);
-      continue;
+      if (retries === 0) throw new Error(e.message || 'Generation failed — try again');
+      await sleep(5000);
     }
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.type.startsWith('image/')) return blob;
-      let json = {};
-      try { const txt = await blob.text(); json = JSON.parse(txt); } catch(e) {}
-      if (json?.estimated_time) { await sleep(Math.min(json.estimated_time * 1000, 30000)); retries--; continue; }
-      if (json?.error?.includes('loading')) { await sleep(20000); retries--; continue; }
-      throw new Error(json?.error || 'Non-image response from model');
-    }
-    if (res.status === 503) {
-      let j = {}; try { j = await res.json(); } catch(e) {}
-      const wait = Math.min((j.estimated_time || 25) * 1000, 30000);
-      await sleep(wait); retries--; continue;
-    }
-    if (res.status === 401) throw new Error('Invalid HF token — check your token');
-    if (res.status === 403) throw new Error('Token missing Inference permission — regenerate with "Make calls to Inference Providers" checked');
-    if (res.status === 429) throw new Error('Rate limited — increase delay between panels');
-    if (res.status === 402) throw new Error('Free credits exhausted — upgrade to HF PRO ($9/mo)');
-    let j = {}; try { j = await res.json(); } catch(e) {}
-    throw new Error(j?.error || `HTTP ${res.status}`);
   }
-  throw new Error('Max retries reached — model may be unavailable');
+  throw new Error('Max retries reached');
 }
 
 // ══════════════════════════════════════════
