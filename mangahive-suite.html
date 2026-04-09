@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangaHive — Production Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg: #070709;
+  --bg2: #0d0d11;
+  --bg3: #13131a;
+  --bg4: #1a1a23;
+  --bg5: #20202c;
+  --gold: #c4a35a;
+  --gold2: #debb7a;
+  --gold3: #f0d9a8;
+  --goldDim: rgba(196,163,90,0.09);
+  --goldBorder: rgba(196,163,90,0.2);
+  --goldBorder2: rgba(196,163,90,0.35);
+  --white: #ece8df;
+  --white2: #b8b4ab;
+  --muted: #68655e;
+  --muted2: #3a3935;
+  --green: #4aab7a;
+  --greenDim: rgba(74,171,122,0.12);
+  --red: #d44f4f;
+  --redDim: rgba(212,79,79,0.12);
+  --blue: #4d7fd0;
+  --orange: #cc7d45;
+  --border: rgba(255,255,255,0.05);
+  --border2: rgba(255,255,255,0.09);
+  --border3: rgba(255,255,255,0.14);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+/* ─── HEADER ─── */
+.header {
+  position: relative; z-index: 100;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--goldBorder);
+  padding: 0 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 72px;
+}
+.header-logo {
+  display: flex; align-items: baseline; gap: 12px;
+}
+.logo-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 400;
+  color: var(--white); letter-spacing: -.02em;
+}
+.logo-mark span { color: var(--gold); }
+.logo-sep {
+  width: 1px; height: 18px;
+  background: var(--border3);
+}
+.logo-suite {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .22em;
+  color: var(--muted); text-transform: uppercase;
+}
+.header-right {
+  display: flex; align-items: center; gap: 16px;
+}
+.hdr-token-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+.hdr-token-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--gold);
+  letter-spacing: .18em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.hdr-token-input {
+  background: transparent; border: none; outline: none;
+  color: var(--white); font-family: 'DM Mono', monospace;
+  font-size: 11px; width: 220px;
+}
+.hdr-token-input::placeholder { color: var(--muted); }
+.hdr-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted2);
+  transition: background .3s;
+}
+.status-dot.online { background: var(--green); animation: pulse 2.5s ease infinite; }
+.status-dot.error { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ─── WIZARD STEPS ─── */
+.wizard-nav {
+  position: relative; z-index: 90;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 48px;
+  display: flex; align-items: center; gap: 0;
+}
+.wiz-step {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 24px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  position: relative;
+}
+.wiz-step:not(.active):not(.done) { opacity: .4; pointer-events: none; }
+.wiz-step.done { opacity: .65; }
+.wiz-step.done:hover { opacity: 1; }
+.wiz-step.active { border-bottom-color: var(--gold); }
+.wiz-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--border3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--muted); flex-shrink: 0;
+  transition: all .2s;
+}
+.wiz-step.active .wiz-num {
+  background: var(--gold); border-color: var(--gold);
+  color: var(--bg); font-weight: 500;
+}
+.wiz-step.done .wiz-num {
+  background: var(--green); border-color: var(--green); color: var(--bg);
+  font-size: 11px;
+}
+.wiz-label {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted2); white-space: nowrap;
+}
+.wiz-step.active .wiz-label { color: var(--gold); }
+.wiz-step.done .wiz-label { color: var(--white2); }
+.wiz-arrow {
+  width: 24px; height: 1px; background: var(--border2);
+  flex-shrink: 0; margin: 0 4px;
+}
+
+/* ─── MAIN ─── */
+.stage { display: none; position: relative; z-index: 10; }
+.stage.active { display: block; }
+
+/* ─── STAGE SHELL ─── */
+.stage-shell {
+  max-width: 1200px; margin: 0 auto;
+  padding: 48px 48px 80px;
+}
+.stage-head { margin-bottom: 40px; }
+.stage-eyebrow {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: .28em; color: var(--gold);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.stage-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px; font-weight: 300; line-height: 1.05;
+  letter-spacing: -.02em; color: var(--white);
+}
+.stage-desc {
+  font-size: 14px; color: var(--muted);
+  margin-top: 10px; line-height: 1.7; max-width: 560px;
+}
+
+/* ─── GRID UTILS ─── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.g5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+
+/* ─── FIELD ─── */
+.field { margin-bottom: 18px; }
+.field-label {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: .2em; color: var(--gold);
+  text-transform: uppercase; display: block; margin-bottom: 7px;
+}
+.field-hint {
+  font-size: 11px; color: var(--muted);
+  margin-top: 4px; line-height: 1.5;
+}
+input[type=text], input[type=number], input[type=email],
+select, textarea {
+  width: 100%;
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--white); font-family: 'Outfit', sans-serif;
+  font-size: 13px; font-weight: 300;
+  padding: 10px 14px; border-radius: 4px; outline: none;
+  transition: border .2s, background .2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--goldBorder2); background: var(--bg4);
+}
+select {
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23c4a35a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 36px;
+}
+select option { background: var(--bg3); }
+textarea { resize: vertical; line-height: 1.6; }
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 3px; background: var(--bg5);
+  border-radius: 2px; outline: none; cursor: pointer;
+  border: none; padding: 0;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--gold); cursor: pointer;
+}
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-val {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--gold2); min-width: 32px; text-align: right;
+}
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 22px;
+}
+.card-gold {
+  background: var(--bg2); border: 1px solid var(--goldBorder);
+  border-radius: 10px; padding: 22px;
+}
+.card-title {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: .22em; color: var(--gold);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+
+/* ─── STORY CARDS ─── */
+.story-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 28px; }
+.story-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; cursor: pointer;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.story-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--goldDim); opacity: 0; transition: opacity .2s;
+}
+.story-card:hover::before { opacity: 1; }
+.story-card:hover { border-color: var(--goldBorder); }
+.story-card.sel { border-color: var(--gold); }
+.story-card.sel::before { opacity: 1; }
+.sc-num {
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  color: var(--muted); letter-spacing: .2em; margin-bottom: 6px;
+}
+.sc-title { font-size: 12px; font-weight: 500; color: var(--white); line-height: 1.3; margin-bottom: 4px; }
+.sc-genre { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--gold); }
+.sc-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--gold); display: none;
+  align-items: center; justify-content: center;
+  font-size: 9px; color: var(--bg);
+}
+.story-card.sel .sc-check { display: flex; }
+
+/* ─── EPISODE CHIPS ─── */
+.ep-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ep-chip {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .1em; padding: 7px 16px;
+  border: 1px solid var(--border2); border-radius: 20px;
+  cursor: pointer; color: var(--muted); background: transparent;
+  transition: all .15s;
+}
+.ep-chip:hover { border-color: var(--goldBorder); color: var(--white2); }
+.ep-chip.sel { border-color: var(--gold); color: var(--gold); background: var(--goldDim); }
+
+/* ─── BUTTONS ─── */
+.btn-primary {
+  background: var(--gold); color: var(--bg); border: none;
+  padding: 13px 28px; font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: .15em;
+  text-transform: uppercase; border-radius: 4px; cursor: pointer;
+  transition: opacity .2s; white-space: nowrap;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-primary:disabled { opacity: .3; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent; color: var(--gold);
+  border: 1px solid var(--goldBorder); padding: 11px 22px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+  border-radius: 4px; cursor: pointer; transition: all .2s;
+  white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--goldDim); border-color: var(--gold); }
+.btn-secondary:disabled { opacity: .3; cursor: not-allowed; }
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border2); padding: 9px 18px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  border-radius: 4px; cursor: pointer; transition: all .2s;
+}
+.btn-ghost:hover { color: var(--white); border-color: var(--border3); }
+.btn-danger {
+  background: transparent; color: var(--red);
+  border: 1px solid rgba(212,79,79,.3); padding: 9px 18px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  border-radius: 4px; cursor: pointer; transition: all .2s;
+}
+.btn-danger:hover { background: var(--redDim); }
+
+/* ─── DIVIDERS ─── */
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+.divider-gold { height: 1px; background: linear-gradient(90deg,transparent,var(--goldBorder),transparent); margin: 32px 0; }
+
+/* ─── CHARACTER SETUP ─── */
+.char-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.char-card-header {
+  padding: 16px 20px; background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.char-card-title {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .2em; color: var(--gold); text-transform: uppercase;
+}
+.char-card-body { padding: 20px; }
+.char-ref-box {
+  border: 1.5px dashed var(--border2); border-radius: 8px;
+  padding: 20px; text-align: center; margin-bottom: 14px;
+  cursor: pointer; transition: all .2s; min-height: 120px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.char-ref-box:hover { border-color: var(--goldBorder); background: var(--goldDim); }
+.char-ref-box.has-image { border-style: solid; border-color: var(--gold); padding: 0; overflow: hidden; }
+.char-ref-box img { width: 100%; height: 180px; object-fit: cover; }
+.char-ref-label {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--muted); letter-spacing: .15em; text-transform: uppercase;
+}
+.seed-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--goldDim); border: 1px solid var(--goldBorder);
+  border-radius: 4px; padding: 5px 10px;
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--gold2);
+}
+
+/* ─── GENERATION ─── */
+.gen-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; }
+.gen-sidebar {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px;
+  align-self: start; position: sticky; top: 20px;
+}
+.gen-sidebar-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.gen-sidebar-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.gsec-label {
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  letter-spacing: .22em; color: var(--gold); text-transform: uppercase; margin-bottom: 12px;
+}
+
+/* progress */
+.progress-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; margin-bottom: 20px;
+}
+.prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.prog-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--white); }
+.prog-frac { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); }
+.prog-bar { height: 2px; background: var(--bg5); border-radius: 1px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--gold); border-radius: 1px; transition: width .4s ease; width: 0; }
+.prog-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+/* stats */
+.stat-strip { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+.stat-item { flex: 1; padding: 14px 16px; border-right: 1px solid var(--border); }
+.stat-item:last-child { border-right: none; }
+.stat-lbl { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+.stat-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; color: var(--gold2); line-height: 1; }
+
+/* image grid */
+.img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
+.img-cell {
+  aspect-ratio: 2/3; border-radius: 6px; overflow: hidden;
+  background: var(--bg3); border: 1px solid var(--border);
+  position: relative; transition: border-color .2s;
+}
+.img-cell:hover { border-color: var(--goldBorder); }
+.img-cell img { width: 100%; height: 100%; object-fit: cover; }
+.img-cell-num {
+  position: absolute; top: 5px; left: 5px;
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  background: rgba(0,0,0,.75); color: var(--gold);
+  padding: 2px 6px; border-radius: 3px; letter-spacing: .1em;
+}
+.img-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.65);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; opacity: 0; transition: opacity .2s;
+}
+.img-cell:hover .img-overlay { opacity: 1; }
+.cell-queued { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; opacity: .35; }
+.cell-q-num { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: .12em; }
+.cell-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; }
+.spinner { width: 18px; height: 18px; border: 1.5px solid var(--goldDim); border-top-color: var(--gold); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: .1em; }
+.cell-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 100%; padding: 10px; }
+.cell-err-msg { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--red); text-align: center; line-height: 1.4; }
+
+/* ─── DIALOGUE ─── */
+.panel-grid-diag { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; margin: 14px 0; }
+.panel-thumb-d {
+  aspect-ratio: 2/3; border-radius: 5px; overflow: hidden;
+  background: var(--bg3); border: 1px solid var(--border);
+  position: relative;
+}
+.panel-thumb-d img { width: 100%; height: 100%; object-fit: cover; }
+.pth-num {
+  position: absolute; bottom: 3px; left: 3px;
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  background: rgba(0,0,0,.8); color: var(--gold);
+  padding: 1px 5px; border-radius: 2px;
+}
+.script-example {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--muted); line-height: 1.9; margin-bottom: 14px;
+}
+.script-example span { color: var(--gold2); }
+
+/* ─── UPLOAD ─── */
+.upload-drop {
+  border: 1.5px dashed var(--border2); border-radius: 8px;
+  padding: 32px 24px; text-align: center; cursor: pointer;
+  transition: all .2s; margin-bottom: 16px;
+}
+.upload-drop:hover { border-color: var(--gold); background: var(--goldDim); }
+.upload-drop-icon { font-size: 22px; margin-bottom: 8px; }
+.upload-drop-title { font-size: 13px; font-weight: 400; color: var(--white); margin-bottom: 3px; }
+.upload-drop-sub { font-size: 11px; color: var(--muted); }
+
+/* ─── STATUS / TOAST ─── */
+.status-bar {
+  border-radius: 6px; padding: 10px 14px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+}
+.status-ok { background: var(--greenDim); border: 1px solid rgba(74,171,122,.3); color: var(--green); }
+.status-err { background: var(--redDim); border: 1px solid rgba(212,79,79,.3); color: var(--red); }
+.status-info { background: var(--goldDim); border: 1px solid var(--goldBorder); color: var(--gold2); }
+
+.toast {
+  position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+  background: var(--bg3); border: 1px solid var(--border3);
+  border-radius: 6px; padding: 12px 18px;
+  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--white);
+  transform: translateY(16px); opacity: 0;
+  transition: all .3s; pointer-events: none; max-width: 360px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── STEP NAV BUTTONS ─── */
+.stage-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+.stage-nav-left { display: flex; gap: 10px; }
+.stage-nav-right { display: flex; gap: 10px; }
+
+@media (max-width: 900px) {
+  .header { padding: 0 20px; }
+  .wizard-nav { padding: 0 20px; overflow-x: auto; }
+  .stage-shell { padding: 28px 20px 60px; }
+  .story-grid { grid-template-columns: repeat(2,1fr); }
+  .g2, .g3, .g4, .g5 { grid-template-columns: 1fr; }
+  .gen-layout { grid-template-columns: 1fr; }
+  .panel-grid-diag { grid-template-columns: repeat(4,1fr); }
+  .hdr-token-input { width: 140px; }
+  .stat-strip { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-mark">Manga<span>Hive</span></div>
+    <div class="logo-sep"></div>
+    <div class="logo-suite">Production Suite</div>
+  </div>
+  <div class="header-right">
+    <div class="hdr-token-wrap">
+      <span class="hdr-token-label">HF</span>
+      <input type="text" class="hdr-token-input" id="hfToken" placeholder="hf_token_here..." oninput="tokenChanged()">
+    </div>
+    <select id="modelSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:190px;letter-spacing:.05em;">
+      <option value="Linaqruf/anything-v3.0">Anything V3 (Manga)</option>
+      <option value="andite/anything-v4.0">Anything V4</option>
+      <option value="Ojimi/anime-kawai-diffusion">Anime Kawai</option>
+      <option value="hakurei/waifu-diffusion">Waifu Diffusion</option>
+      <option value="dreamlike-art/dreamlike-anime-1.0">Dreamlike Anime</option>
+    </select>
+    <div class="hdr-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ WIZARD NAV ═══ -->
+<nav class="wizard-nav">
+  <div class="wiz-step active" id="wiz1" onclick="goToStage(1)">
+    <div class="wiz-num" id="wnum1">1</div>
+    <div class="wiz-label">Story & Episode</div>
+  </div>
+  <div class="wiz-arrow"></div>
+  <div class="wiz-step" id="wiz2" onclick="goToStage(2)">
+    <div class="wiz-num" id="wnum2">2</div>
+    <div class="wiz-label">Characters</div>
+  </div>
+  <div class="wiz-arrow"></div>
+  <div class="wiz-step" id="wiz3" onclick="goToStage(3)">
+    <div class="wiz-num" id="wnum3">3</div>
+    <div class="wiz-label">Generate Panels</div>
+  </div>
+  <div class="wiz-arrow"></div>
+  <div class="wiz-step" id="wiz4" onclick="goToStage(4)">
+    <div class="wiz-num" id="wnum4">4</div>
+    <div class="wiz-label">Dialogue</div>
+  </div>
+  <div class="wiz-arrow"></div>
+  <div class="wiz-step" id="wiz5" onclick="goToStage(5)">
+    <div class="wiz-num" id="wnum5">5</div>
+    <div class="wiz-label">Upload</div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════
+     STAGE 1: STORY & EPISODE
+════════════════════════════════════ -->
+<div class="stage active" id="stage1">
+<div class="stage-shell">
+  <div class="stage-head">
+    <div class="stage-eyebrow">Stage 01 of 05</div>
+    <div class="stage-title">Choose your story<br>& episode</div>
+    <div class="stage-desc">Select the story and episode you want to produce. All prompts, character seeds, and dialogue will be pre-loaded for your selection.</div>
+  </div>
+
+  <div class="story-grid" id="storyGrid"></div>
+
+  <div class="field">
+    <label class="field-label">Episode</label>
+    <div class="ep-chips" id="epChips"></div>
+  </div>
+
+  <div class="divider-gold"></div>
+
+  <div class="card" id="epSummary" style="display:none">
+    <div class="card-title">Episode Summary</div>
+    <div class="g2">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--white);margin-bottom:6px" id="epSumTitle"></div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7" id="epSumDesc"></div>
+      </div>
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px">Characters</div>
+        <div id="epSumChars" style="font-size:13px;color:var(--white2);line-height:1.9"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-nav">
+    <div></div>
+    <div class="stage-nav-right">
+      <button class="btn-primary" id="btnS1Next" onclick="goToStage(2)" disabled>Set Up Characters →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════
+     STAGE 2: CHARACTERS
+════════════════════════════════════ -->
+<div class="stage" id="stage2">
+<div class="stage-shell">
+  <div class="stage-head">
+    <div class="stage-eyebrow">Stage 02 of 05</div>
+    <div class="stage-title">Character<br>consistency setup</div>
+    <div class="stage-desc">Generate a reference image for each lead character first. All 18 episode panels will then use these references as visual anchors — keeping faces, hair, and style consistent throughout.</div>
+  </div>
+
+  <div class="card-gold" style="margin-bottom:28px;padding:16px 20px;">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:20px;height:20px;border-radius:50%;background:var(--goldBorder2);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold)">i</span>
+      </div>
+      <div style="font-size:12px;color:var(--white2);line-height:1.7">
+        <strong style="color:var(--gold2)">How consistency works:</strong> Each character gets a fixed seed number + a detailed visual description. Every panel prompt embeds this description + seed, so the model produces the same facial structure, hair, and style each time. Generate reference images first, then visually approve them before generating all panels.
+      </div>
+    </div>
+  </div>
+
+  <div class="g2" id="charCards"></div>
+
+  <div class="divider"></div>
+
+  <div class="card">
+    <div class="card-title">Generation Settings</div>
+    <div class="g3">
+      <div class="field">
+        <label class="field-label">Inference Steps</label>
+        <div class="range-row">
+          <input type="range" id="steps" min="15" max="50" step="1" value="28" oninput="document.getElementById('stepsV').textContent=this.value">
+          <span class="range-val" id="stepsV">28</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Guidance Scale (CFG)</label>
+        <div class="range-row">
+          <input type="range" id="cfg" min="4" max="14" step="0.5" value="7.5" oninput="document.getElementById('cfgV').textContent=parseFloat(this.value).toFixed(1)">
+          <span class="range-val" id="cfgV">7.5</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Delay Between Panels (sec)</label>
+        <div class="range-row">
+          <input type="range" id="delay" min="2" max="20" step="1" value="5" oninput="document.getElementById('delayV').textContent=this.value">
+          <span class="range-val" id="delayV">5</span>
+        </div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label class="field-label">Image Width</label>
+        <select id="imgW">
+          <option value="512" selected>512px — fastest</option>
+          <option value="640">640px</option>
+          <option value="768">768px — best quality</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Image Height</label>
+        <select id="imgH">
+          <option value="768" selected>768px — portrait (manga)</option>
+          <option value="512">512px — square</option>
+          <option value="640">640px</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Negative Prompt (applied to all panels)</label>
+      <textarea id="negPrompt" rows="2">blurry, low quality, bad anatomy, extra fingers, deformed hands, ugly, watermark, text, signature, mutated, 3d render, photorealistic, out of frame, poorly drawn face</textarea>
+    </div>
+  </div>
+
+  <div class="stage-nav">
+    <div class="stage-nav-left">
+      <button class="btn-ghost" onclick="goToStage(1)">← Back</button>
+    </div>
+    <div class="stage-nav-right">
+      <button class="btn-primary" onclick="goToStage(3)">Begin Generating →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════
+     STAGE 3: GENERATE PANELS
+════════════════════════════════════ -->
+<div class="stage" id="stage3">
+<div class="stage-shell">
+  <div class="stage-head">
+    <div class="stage-eyebrow">Stage 03 of 05</div>
+    <div class="stage-title">Batch generate<br>all panels</div>
+    <div class="stage-desc">All 18 prompts are queued with character anchors embedded. Hit generate and walk away — panels appear as they complete.</div>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-item"><div class="stat-lbl">Total</div><div class="stat-val" id="stTotal">18</div></div>
+    <div class="stat-item"><div class="stat-lbl">Done</div><div class="stat-val" id="stDone" style="color:var(--green)">0</div></div>
+    <div class="stat-item"><div class="stat-lbl">Failed</div><div class="stat-val" id="stFail" style="color:var(--red)">0</div></div>
+    <div class="stat-item"><div class="stat-lbl">Queued</div><div class="stat-val" id="stQueue" style="color:var(--muted)">18</div></div>
+  </div>
+
+  <div class="progress-card" id="progressCard" style="display:none">
+    <div class="prog-row">
+      <span class="prog-label" id="progLabel">Generating...</span>
+      <span class="prog-frac" id="progFrac">0 / 18</span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-info" id="progInfo"></div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+    <button class="btn-primary" id="btnGenerate" onclick="startGeneration()">Generate All 18 Panels →</button>
+    <button class="btn-secondary" id="btnPause" onclick="togglePause()" style="display:none">Pause</button>
+    <button class="btn-ghost" onclick="resetGeneration()">Reset</button>
+    <button class="btn-secondary" id="btnDlAll" onclick="downloadAll()" disabled>Download All (p1–p18)</button>
+  </div>
+
+  <div class="img-grid" id="imgGrid"></div>
+
+  <div class="stage-nav">
+    <div class="stage-nav-left">
+      <button class="btn-ghost" onclick="goToStage(2)">← Back</button>
+    </div>
+    <div class="stage-nav-right">
+      <button class="btn-primary" id="btnS3Next" onclick="goToStage(4)" disabled>Add Dialogue →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════
+     STAGE 4: DIALOGUE
+════════════════════════════════════ -->
+<div class="stage" id="stage4">
+<div class="stage-shell">
+  <div class="stage-head">
+    <div class="stage-eyebrow">Stage 04 of 05</div>
+    <div class="stage-title">Add dialogue<br>& speech bubbles</div>
+    <div class="stage-desc">Upload your generated panels (or use auto-transferred panels from Stage 3), paste the episode script, and apply speech bubbles to all panels at once.</div>
+  </div>
+
+  <div class="g2" style="gap:32px">
+    <div>
+      <div class="card-title" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:12px">Panels</div>
+      <div id="autoTransferNote" class="status-bar status-info" style="margin-bottom:14px;display:none">
+        Panels auto-transferred from Stage 3
+      </div>
+      <div class="upload-drop" onclick="document.getElementById('panelUpload').click()">
+        <div class="upload-drop-icon" style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:28px;font-style:italic">↑</div>
+        <div class="upload-drop-title">Upload panels</div>
+        <div class="upload-drop-sub">PNG/JPG · sorted by filename number</div>
+        <input type="file" id="panelUpload" multiple accept="image/*" style="display:none" onchange="handlePanels(event)">
+      </div>
+      <div class="panel-grid-diag" id="panelGridDiag"></div>
+
+      <div class="field" style="margin-top:16px">
+        <label class="field-label">Bubble Style</label>
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">Font</label>
+            <select id="bubFont">
+              <option value="Bangers">Bangers — manga style</option>
+              <option value="Arial Black">Arial Black — bold</option>
+              <option value="Georgia">Georgia — elegant</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Size</label>
+            <select id="bubSize">
+              <option value="20">20px small</option>
+              <option value="26" selected>26px default</option>
+              <option value="32">32px large</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Bubble Color</label>
+            <select id="bubColor">
+              <option value="white">White classic</option>
+              <option value="#fffde7">Cream warm</option>
+              <option value="#e3f2fd">Ice blue</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Text Color</label>
+            <select id="bubText">
+              <option value="#111">Ink black</option>
+              <option value="#1a237e">Deep navy</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-title" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:12px">Episode Script</div>
+      <div class="script-example">
+        <span style="color:var(--gold)">PANEL 1</span><br>
+        <span>HANA: I can't believe I agreed to this.</span><br>
+        <span>ETHAN: You didn't have a choice.</span><br><br>
+        <span style="color:var(--gold)">PANEL 2</span><br>
+        <span>HANA: There's always a choice.</span>
+      </div>
+      <div class="field">
+        <label class="field-label">Paste Script</label>
+        <textarea id="scriptArea" rows="14" placeholder="PANEL 1&#10;CHARACTER: dialogue here&#10;&#10;PANEL 2&#10;CHARACTER: next line..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="processDialogue()">Apply Dialogue to All Panels →</button>
+      <div id="diagStatus"></div>
+    </div>
+  </div>
+
+  <div id="processedSection" style="display:none;margin-top:32px">
+    <div class="divider-gold"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase">Processed Panels</span>
+      <button class="btn-secondary" onclick="downloadProcessed()">Download All Processed</button>
+    </div>
+    <div class="panel-grid-diag" id="processedGrid"></div>
+  </div>
+
+  <div class="stage-nav">
+    <div class="stage-nav-left">
+      <button class="btn-ghost" onclick="goToStage(3)">← Back</button>
+    </div>
+    <div class="stage-nav-right">
+      <button class="btn-primary" onclick="goToStage(5)">Upload to MangaHive →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════
+     STAGE 5: UPLOAD
+════════════════════════════════════ -->
+<div class="stage" id="stage5">
+<div class="stage-shell">
+  <div class="stage-head">
+    <div class="stage-eyebrow">Stage 05 of 05</div>
+    <div class="stage-title">Upload chapter<br>to MangaHive</div>
+    <div class="stage-desc">Upload processed panels to Supabase Storage and create the chapter database entry — all in one click.</div>
+  </div>
+
+  <div class="g2" style="gap:28px">
+    <div>
+      <div class="card-gold" style="margin-bottom:20px">
+        <div class="card-title">Supabase Connection</div>
+        <div class="field">
+          <label class="field-label">Project URL</label>
+          <input type="text" id="sbUrl" value="https://uhjptxhhaipckshgytul.supabase.co">
+        </div>
+        <div class="field">
+          <label class="field-label">Anon Key</label>
+          <input type="text" id="sbKey" value="sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9">
+        </div>
+        <button class="btn-secondary" onclick="connectSupabase()">Connect →</button>
+        <div id="sbConnStatus"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Chapter Details</div>
+        <div class="field">
+          <label class="field-label">Story</label>
+          <select id="uploadStory"><option value="">— connect first —</option></select>
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label class="field-label">Episode Number</label>
+            <input type="number" id="uploadEp" min="1" max="8" placeholder="1">
+          </div>
+          <div class="field">
+            <label class="field-label">Access</label>
+            <select id="uploadFree">
+              <option value="true">Free (Ep 1–3)</option>
+              <option value="false">Locked (coins)</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Episode Title</label>
+          <input type="text" id="uploadTitle" placeholder="e.g. The Contract">
+        </div>
+        <div class="field">
+          <label class="field-label">Coin Cost</label>
+          <input type="number" id="uploadCost" value="5">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">Panel Images</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px">
+          Option A — use processed panels from Stage 4 (auto-filled)<br>
+          Option B — upload fresh images to storage below<br>
+          Option C — paste URLs manually
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('freshUpload').click()" style="margin-bottom:12px;width:100%">
+          Upload Images to Supabase Storage →
+        </button>
+        <input type="file" id="freshUpload" multiple accept="image/*" style="display:none" onchange="uploadToStorage(event)">
+        <div id="storageProgress" style="display:none;margin-bottom:12px">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);margin-bottom:6px" id="storageProgressText"></div>
+          <div class="prog-bar"><div class="prog-fill" id="storageProgressFill"></div></div>
+        </div>
+        <div class="field">
+          <label class="field-label">Image URLs (one per line)</label>
+          <textarea id="imageUrls" rows="10" placeholder="https://uhjptxhhaipckshgytul.supabase.co/storage/v1/object/public/manga-images/p1.png&#10;https://.../p2.png&#10;..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn-primary" style="width:100%" onclick="createChapter()">Create Chapter in Database →</button>
+      <div id="uploadStatus"></div>
+    </div>
+  </div>
+
+  <div class="stage-nav">
+    <div class="stage-nav-left">
+      <button class="btn-ghost" onclick="goToStage(4)">← Back</button>
+    </div>
+    <div class="stage-nav-right">
+      <button class="btn-primary" onclick="startNewEpisode()" style="background:var(--bg3);color:var(--gold);border:1px solid var(--goldBorder)">Produce Next Episode →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const STORIES = [
+  {
+    title:"The Devil's Contract", genre:"Romance", short:"devil",
+    chars: {
+      f: { name:"Hana Yoshida", desc:"young Japanese-American woman, long straight black hair, warm brown eyes, elegant oval face, slender build, professional business attire, architect", seed:42001 },
+      m: { name:"Ethan Blackwood", desc:"tall American man, dark brown styled hair, sharp cold grey eyes, strong jaw, athletic build, expensive sharp suit, billionaire CEO", seed:42002 }
+    },
+    setting:"luxury Tokyo skyscraper office, glass architecture, city night skyline",
+    episodes:[
+      {n:1,t:"The Contract",summary:"Struggling architect Hana signs a contract with cold billionaire Ethan to erase her father's 40M yen debt.",
+       scenes:["wide establishing shot luxury skyscraper lobby at night, city lights outside","young Japanese-American woman architect, holding documents, worried expression","tall American billionaire man cold expression sharp suit, floor-to-ceiling window","woman and man facing each other across large desk, tense negotiation","woman shocked reaction standing up, eyes wide, holding contract papers","man intense close-up, jaw set, grey eyes cold and determined","dramatic silhouette two people at panoramic window overlooking city","architectural blueprints spread on glass table, gold pen detail","woman walking corridor alone, elegant backshot, heels on marble","man's hand sliding document across desk toward woman","best friend woman appearing in doorway, concerned expression","woman small solitary figure in vast empty boardroom","man signing contract, close-up gold pen and hand","dramatic harsh shadow across man's face, side lighting","woman and man in elevator, silence, not looking at each other","tense moment both characters by window, charged atmosphere","woman alone on rooftop at night, city lights below, contemplating","extreme close-up woman's eyes, unshed tears, resolute expression"]},
+      {n:2,t:"First Night at the Office",summary:"Hana works late in Ethan's tower. Their professional tension begins to crack.",
+       scenes:["modern open-plan architectural office at night, single desk lamp lit","woman at drafting desk late night, blueprints spread, coffee nearby","man in doorway backlit, watching her work, surprised expression","woman startled looks up from blueprints, coffee cup in hand","man walks toward her desk, looks at her blueprints with interest","close-up blueprints with red pen annotations, two sets of hands visible","both leaning over same large blueprint, close proximity, awareness","woman's flustered face, slight flush on cheeks, looking away","man's expression slightly softened, almost impressed","security guard walking empty office hallway in background","woman packing her bag to leave, midnight on desk clock","man holding elevator door open, tense silence between them","elevator interior both facing front, not speaking, tension","building lobby at night, rain visible through glass doors","man hands woman his umbrella, brief accidental touch of hands","woman surprised holding umbrella, looking at him","man walking into rain without umbrella, hands in pockets","woman watching him leave through lobby glass, conflicted expression"]},
+      {n:3,t:"The Almost Kiss",summary:"A charged moment between Hana and Ethan almost becomes something more.",
+       scenes:["bright design studio daytime, architecture team meeting","woman presenting scale building model, confident passionate stance","man watching her from across room, different expression in his eyes","design team listening, woman's genuine enthusiasm visible","coffee break scene, just the two of them by tall window","close quiet conversation, heads naturally leaning toward each other","woman pointing at city buildings below, man beside her following her gaze","accidental hand touch on windowsill, both freeze","electric moment, faces very close, almost touching, holding breath","assistant enters with documents, interrupting","woman and man step apart smoothly, professional masks back on","woman's hand to chest, feeling her heartbeat, back to camera","man clears throat adjusts jacket, looks at documents","awkward return to work, both carefully not looking at each other","woman's best friend Yuki watches from doorway, knowing smile","man pausing at door as he leaves meeting room","brief look back at woman, she doesn't see it","woman alone at desk, fingers touching spot where their hands met"]}
+    ]
+  },
+  {
+    title:"Moonlit Rival", genre:"Enemies to Lovers", short:"moonlit",
+    chars: {
+      f: { name:"Sakura Nakamura", desc:"young Japanese-American woman, shoulder-length wavy dark hair, bright sharp dark eyes, petite athletic build, creative designer fashion, confident body language", seed:43001 },
+      m: { name:"Kai Anderson", desc:"American man, messy light brown hair, green eyes, easy confident smile hiding competitiveness, lean build, casual smart style, architect", seed:43002 }
+    },
+    setting:"modern design studio, shared urban apartment, city streets at night",
+    episodes:[
+      {n:1,t:"Worst Surprise",summary:"Rivals discover they must co-own their late mentor's design firm and live together for one year.",
+       scenes:["formal lawyer's office, two people sitting far apart on opposite ends","young Japanese-American woman designer arms crossed skeptical expression","American man architect casual confident slouch, hiding his surprise","serious lawyer reading will aloud between them","woman shocked standing abruptly, hand on desk","man's controlled smirk barely covering surprise","legal document close-up both names visible on same line","woman storming out through glass office doors","man following loosely behind, hands in pockets","street confrontation both facing off on urban sidewalk","woman pointing at man animated argument, people walking past","man leaning on parked car, arms crossed, frustrating calm","woman's best friend Mia arriving, looks between them in disbelief","shared apartment building exterior, both staring up at it","woman's horrified face looking at apartment number","man casual shrug walking toward building entrance","apartment interior: one side impeccably neat, one side lived-in chaos","both standing in kitchen doorway simultaneously realizing the situation"]}
+    ]
+  },
+  {
+    title:"Blade and Blossom", genre:"Action / Romance", short:"blade",
+    chars: {
+      f: { name:"Lily Harper", desc:"American woman FBI agent, auburn hair in practical ponytail, sharp intelligent blue eyes, lean athletic build, dark tactical clothing, badge visible, capable intense expression", seed:44001 },
+      m: { name:"Ren Takahashi", desc:"Japanese man assassin, black hair, dark calm dangerous eyes, lean powerful build, dark fitted clothing, controlled precise movement, haunted expression", seed:44002 }
+    },
+    setting:"rain-soaked dark city alleyways, rooftops at night, industrial warehouse",
+    episodes:[
+      {n:1,t:"Wrong Target",summary:"Assassin Ren refuses to hit a school. FBI agent Lily captures him. Shadow's men attack both.",
+       scenes:["dark rainy alley at night, neon signs reflecting in puddles, atmospheric","Japanese man in dark clothing standing on rain-slicked rooftop, city below","school building across street, warm lights in windows, children visible","man lowering weapon, conflict clear on his face, rain on his jacket","FBI woman agent emerging from shadows, gun drawn, determined","tense standoff in alley, man hands partially raised, woman gun aimed","close-up man's dark eyes, completely calm despite the danger","woman's face, sharp blue eyes, badge catching light in rain","sudden attackers exploding from shadows, multiple figures","dynamic action, man fighting multiple attackers, fluid precise movement","woman joins fight, athletic powerful movement, surprised by his skill","two of them back-to-back against remaining attackers","attackers retreat into darkness, rain continuing","woman re-aims gun at man, breathing hard, he's still her target","man slowly raises hands again, controlled, almost amused","distant sound — they both look up simultaneously","both suddenly running through the alley together, urgent","wide shot two figures running, dark rain-soaked city behind them"]}
+    ]
+  },
+  {
+    title:"The Last Shrine", genre:"Fantasy / Romance", short:"shrine",
+    chars: {
+      f: { name:"Yumi Asano", desc:"Japanese woman shrine maiden, long black hair, gentle determined dark eyes, slender graceful build, traditional white and red shrine maiden robes (hakama and haori), sacred accessories", seed:45001 },
+      m: { name:"Cole Winters", desc:"American man archaeologist, sandy brown hair, warm curious brown eyes, athletic explorer build, field research clothing, worn leather satchel, adventurous open expression", seed:45002 }
+    },
+    setting:"ancient Japanese forest shrine, mystical glowing spirit realm, sacred mountain caves",
+    episodes:[
+      {n:1,t:"The Seal Breaks",summary:"Cole accidentally breaks the ancient shrine seal, releasing a Fox Spirit and a dark entity.",
+       scenes:["ancient shrine in misty forest, golden afternoon light through trees, sacred atmosphere","shrine maiden in white and red robes, kneeling in prayer before altar","American archaeologist with equipment approaching shrine through trees","warning signs and sacred rope boundary, man stepping over them","close-up ancient stone with glowing seal, intricate mystical patterns","crack slowly appearing in seal, ominous golden light beginning to leak","shrine maiden suddenly sensing wrongness, turning sharply, alarmed","stone shattering in blinding white explosion of light and energy","ethereal fox spirit emerging from the light, orange and white spirit energy","shrine maiden running toward altar, hands raised in protective gesture, horrified","dark shadow tendrils also escaping from the broken seal","archaeologist knocked back by force, sitting stunned on ground","shrine maiden desperately reaching toward broken seal pieces","fox spirit hovering before both of them, ancient amused eyes","sky suddenly darkening unnaturally, wind picking up dramatically","shrine maiden turning to face archaeologist, furious controlled expression","archaeologist apologetic confused expression, doesn't understand what he's done","wide shot: ruined shrine, fox spirit watching both small human figures"]}
+    ]
+  },
+  {
+    title:"Hollow Crown", genre:"Drama / Thriller", short:"hollow",
+    chars: {
+      f: { name:"Nora Hayashi", desc:"Japanese-American woman journalist, dark hair in professional bob, observant dark eyes, slight build, press credentials, sharp professional but practical clothing, always alert", seed:46001 },
+      m: { name:"Marcus Reed", desc:"American man senator, silver-streaked dark hair, authoritative brown eyes, imposing well-built frame, expensive suit, powerful controlled presence but genuine worry visible", seed:46002 }
+    },
+    setting:"Washington DC rainy night streets, newspaper office, government corridors, safe house",
+    episodes:[
+      {n:1,t:"The File",summary:"Journalist Nora receives planted evidence against senator Marcus, who reveals a far bigger conspiracy.",
+       scenes:["newspaper office late night, single desk lamp in large dark room","Japanese-American journalist at desk, opening a plain envelope alone","close-up documents inside: photos, names, financial records, damning evidence","journalist's expression shifting from routine curiosity to genuine alarm","encrypted USB drive sliding out of envelope onto desk","phone rings, unknown number, journalist hand hovering over it hesitating","interior car, senator's worried voice on phone: meet me, tonight, alone","rainy Washington DC street at night, journalist waiting under lamppost","black car pulling up, senator stepping out, collar up","senator's face close-up, grave urgency, genuine fear in his eyes","journalist skeptical arms crossed, studying his face for deception","senator spreading additional folder on car hood in the rain","conspiracy photos: powerful faces, dates, connections, scope is enormous","journalist's eyes widening reading documents, hand to mouth","headlights appearing fast from distance, approaching too quickly","both looking up simultaneously, realizing they're being watched","senator grabbing journalist's arm urgently — they need to run","two running figures in rain, ominous headlights pursuing behind them"]}
+    ]
+  }
+];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentStage = 1;
+let selStory = -1;
+let selEp = -1;
+let prompts = [];
+let charSeeds = {};
+let results = {};
+let isRunning = false;
+let isPaused = false;
+let shouldStop = false;
+let genDone = 0, genFail = 0;
+let genStart = null;
+let loadedPanels = [];
+let processedCanvases = [];
+let sbClient = null;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  buildStoryGrid();
+  const saved = localStorage.getItem('hf_token_mh');
+  if (saved) document.getElementById('hfToken').value = saved;
+  autoConnectSupabase();
+});
+
+function buildStoryGrid() {
+  const grid = document.getElementById('storyGrid');
+  grid.innerHTML = '';
+  STORIES.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'story-card'; d.onclick = () => selectStory(i);
+    d.innerHTML = `<div class="sc-check">✓</div><div class="sc-num">STORY 0${i+1}</div><div class="sc-title">${s.title}</div><div class="sc-genre">${s.genre}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════
+// STORY / EPISODE SELECTION
+// ══════════════════════════════════════════
+function selectStory(i) {
+  selStory = i; selEp = -1;
+  document.querySelectorAll('.story-card').forEach((c, j) => c.classList.toggle('sel', j === i));
+  document.getElementById('btnS1Next').disabled = true;
+  document.getElementById('epSummary').style.display = 'none';
+  buildEpChips();
+}
+
+function buildEpChips() {
+  if (selStory < 0) return;
+  const story = STORIES[selStory];
+  const wrap = document.getElementById('epChips');
+  wrap.innerHTML = '';
+  story.episodes.forEach(ep => {
+    const btn = document.createElement('button');
+    btn.className = 'ep-chip';
+    btn.textContent = `Ep ${ep.n}: ${ep.t}`;
+    btn.onclick = () => selectEp(ep.n);
+    wrap.appendChild(btn);
+  });
+}
+
+function selectEp(n) {
+  selEp = n;
+  document.querySelectorAll('.ep-chip').forEach(c => c.classList.toggle('sel', c.textContent.startsWith(`Ep ${n}:`)));
+  const story = STORIES[selStory];
+  const ep = story.episodes.find(e => e.n === n);
+  if (!ep) return;
+  document.getElementById('epSummary').style.display = 'block';
+  document.getElementById('epSumTitle').textContent = `Ep ${ep.n}: ${ep.t}`;
+  document.getElementById('epSumDesc').textContent = ep.summary;
+  document.getElementById('epSumChars').innerHTML = `Lead Female: <strong style="color:var(--white)">${story.chars.f.name}</strong><br>Lead Male: <strong style="color:var(--white)">${story.chars.m.name}</strong>`;
+  document.getElementById('btnS1Next').disabled = false;
+}
+
+// ══════════════════════════════════════════
+// STAGE NAVIGATION
+// ══════════════════════════════════════════
+function goToStage(n) {
+  if (n === 2 && (selStory < 0 || selEp < 0)) { showToast('Select a story and episode first', 'err'); return; }
+  if (n === 3) buildPrompts();
+  if (n === 3) buildImageGrid();
+  if (n === 2) buildCharCards();
+
+  currentStage = n;
+  document.querySelectorAll('.stage').forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+  document.querySelectorAll('.wiz-step').forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (i + 1 === n) s.classList.add('active');
+    else if (i + 1 < n) { s.classList.add('done'); document.getElementById(`wnum${i+1}`).textContent = '✓'; }
+    else { document.getElementById(`wnum${i+1}`).textContent = i + 1; }
+  });
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════
+// CHARACTER CARDS
+// ══════════════════════════════════════════
+function buildCharCards() {
+  const story = STORIES[selStory];
+  const wrap = document.getElementById('charCards');
+  wrap.innerHTML = '';
+  ['f','m'].forEach(key => {
+    const ch = story.chars[key];
+    charSeeds[key] = charSeeds[key] || ch.seed;
+    const div = document.createElement('div');
+    div.className = 'char-card';
+    div.innerHTML = `
+      <div class="char-card-header">
+        <span class="char-card-title">${key === 'f' ? 'Female Lead' : 'Male Lead'}</span>
+        <span class="seed-badge">SEED <span id="seedVal_${key}">${charSeeds[key]}</span></span>
+      </div>
+      <div class="char-card-body">
+        <div class="field">
+          <label class="field-label">Character Name</label>
+          <input type="text" value="${ch.name}" id="charName_${key}" oninput="updateCharDesc('${key}')">
+        </div>
+        <div class="field">
+          <label class="field-label">Visual Description (locked into every panel prompt)</label>
+          <textarea rows="3" id="charDesc_${key}">${ch.desc}</textarea>
+          <div class="field-hint">Be specific: hair color, eye color, build, clothing, distinctive features.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Seed (same seed = same face structure)</label>
+          <div style="display:flex;gap:8px">
+            <input type="number" id="charSeed_${key}" value="${charSeeds[key]}" style="width:140px" oninput="charSeeds['${key}']=parseInt(this.value)||${ch.seed}">
+            <button class="btn-ghost" onclick="randomSeed('${key}')">Random</button>
+            <button class="btn-secondary" onclick="generateRef('${key}')">Generate Reference →</button>
+          </div>
+        </div>
+        <div id="refBox_${key}" class="char-ref-box">
+          <div style="font-size:20px;color:var(--muted);font-family:'Cormorant Garamond',serif;font-style:italic">portrait</div>
+          <div class="char-ref-label">Reference image will appear here</div>
+        </div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function randomSeed(key) {
+  const s = Math.floor(Math.random() * 99999) + 10000;
+  charSeeds[key] = s;
+  document.getElementById(`charSeed_${key}`).value = s;
+  document.getElementById(`seedVal_${key}`).textContent = s;
+}
+
+async function generateRef(key) {
+  const token = document.getElementById('hfToken').value.trim();
+  if (!token) { showToast('Enter HF token in header first', 'err'); return; }
+  const story = STORIES[selStory];
+  const ch = story.chars[key];
+  const desc = document.getElementById(`charDesc_${key}`).value;
+  const seed = charSeeds[key];
+  const model = document.getElementById('modelSelect').value;
+  const prompt = `anime style, character portrait reference sheet, ${desc}, ${story.setting}, clean linework, detailed face, masterpiece, best quality, character consistency reference`;
+  const box = document.getElementById(`refBox_${key}`);
+  box.className = 'char-ref-box';
+  box.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px"><div class="spinner"></div><div class="char-ref-label">Generating reference...</div></div>`;
+  try {
+    const blob = await callHF(token, model, prompt, document.getElementById('negPrompt').value, 512, 768, 28, 7.5, seed);
+    const url = URL.createObjectURL(blob);
+    box.className = 'char-ref-box has-image';
+    box.innerHTML = `<img src="${url}" alt="${ch.name}"><div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);background:var(--bg2);border-top:1px solid var(--border)">Reference: ${ch.name} · Seed ${seed}</div>`;
+    showToast(`${ch.name} reference generated!`, 'ok');
+  } catch(e) {
+    box.innerHTML = `<div style="padding:20px;text-align:center"><div style="color:var(--red);font-family:'DM Mono',monospace;font-size:10px">${e.message}</div></div>`;
+    showToast(e.message, 'err');
+  }
+}
+
+// ══════════════════════════════════════════
+// PROMPTS
+// ══════════════════════════════════════════
+function buildPrompts() {
+  if (selStory < 0 || selEp < 0) return;
+  const story = STORIES[selStory];
+  const ep = story.episodes.find(e => e.n === selEp);
+  if (!ep) return;
+  const fDesc = document.getElementById('charDesc_f')?.value || story.chars.f.desc;
+  const mDesc = document.getElementById('charDesc_m')?.value || story.chars.m.desc;
+  const style = "anime style, manga illustration, clean linework, highly detailed, expressive faces, masterpiece, best quality";
+  prompts = ep.scenes.map((scene, i) => {
+    const useF = i % 3 !== 2;
+    const useM = i % 3 !== 0;
+    const charAnchor = useF && useM ? `${fDesc}, ${mDesc}` : useF ? fDesc : mDesc;
+    return `${style}, ${scene}, ${charAnchor}, ${story.setting}`;
+  });
+  document.getElementById('stTotal').textContent = prompts.length;
+  document.getElementById('stQueue').textContent = prompts.length;
+}
+
+// ══════════════════════════════════════════
+// GENERATION
+// ══════════════════════════════════════════
+function buildImageGrid() {
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = '';
+  results = {};
+  const count = prompts.length || 18;
+  for (let i = 0; i < count; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'img-cell'; cell.id = `cell_${i}`;
+    cell.innerHTML = `<div class="cell-queued"><div class="cell-q-num">P${i+1} QUEUED</div></div><div class="img-cell-num">P${i+1}</div>`;
+    grid.appendChild(cell);
+  }
+}
+
+async function startGeneration() {
+  const token = document.getElementById('hfToken').value.trim();
+  if (!token || !token.startsWith('hf_')) { showToast('Valid HF token required (starts with hf_)', 'err'); return; }
+  if (!prompts.length) { buildPrompts(); }
+  localStorage.setItem('hf_token_mh', token);
+  isRunning = true; isPaused = false; shouldStop = false;
+  genDone = 0; genFail = 0; genStart = Date.now();
+  const model = document.getElementById('modelSelect').value;
+  const w = parseInt(document.getElementById('imgW').value);
+  const h = parseInt(document.getElementById('imgH').value);
+  const steps = parseInt(document.getElementById('steps').value);
+  const cfg = parseFloat(document.getElementById('cfg').value);
+  const neg = document.getElementById('negPrompt').value;
+  const delayMs = parseInt(document.getElementById('delay').value) * 1000;
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('btnPause').style.display = 'inline-block';
+  document.getElementById('progressCard').style.display = 'block';
+  document.getElementById('btnDlAll').disabled = true;
+  document.getElementById('btnS3Next').disabled = true;
+
+  for (let i = 0; i < prompts.length; i++) {
+    if (shouldStop) break;
+    while (isPaused) await sleep(500);
+    setCellLoading(i);
+    updateProgress(i, prompts.length, prompts[i]);
+    // Use character seed for panels featuring primary character
+    const seedKey = i % 2 === 0 ? 'f' : 'm';
+    const seed = charSeeds[seedKey] || undefined;
+    try {
+      const blob = await callHF(token, model, prompts[i], neg, w, h, steps, cfg, seed);
+      results[i] = { blob };
+      setCellDone(i, blob);
+      genDone++;
+    } catch(e) {
+      results[i] = { error: e.message };
+      setCellError(i, e.message);
+      genFail++;
+    }
+    document.getElementById('stDone').textContent = genDone;
+    document.getElementById('stFail').textContent = genFail;
+    document.getElementById('stQueue').textContent = Math.max(0, prompts.length - i - 1);
+    if (i < prompts.length - 1 && !shouldStop) await sleep(delayMs);
+  }
+
+  isRunning = false;
+  document.getElementById('btnGenerate').disabled = false;
+  document.getElementById('btnGenerate').textContent = 'Regenerate All →';
+  document.getElementById('btnPause').style.display = 'none';
+  document.getElementById('progLabel').textContent = `Complete — ${genDone} panels generated`;
+  document.getElementById('progFill').style.width = '100%';
+  if (genDone > 0) {
+    document.getElementById('btnDlAll').disabled = false;
+    document.getElementById('btnS3Next').disabled = false;
+    // Auto-transfer panels to dialogue stage
+    autoTransferPanels();
+    showToast(`${genDone} panels done! Proceed to Dialogue →`, 'ok');
+  }
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  const btn = document.getElementById('btnPause');
+  btn.textContent = isPaused ? 'Resume' : 'Pause';
+  btn.style.color = isPaused ? 'var(--green)' : 'var(--gold)';
+}
+
+function resetGeneration() {
+  shouldStop = true; isRunning = false; isPaused = false;
+  genDone = 0; genFail = 0; results = {};
+  document.getElementById('stDone').textContent = 0;
+  document.getElementById('stFail').textContent = 0;
+  document.getElementById('stQueue').textContent = prompts.length;
+  document.getElementById('btnGenerate').disabled = false;
+  document.getElementById('btnGenerate').textContent = 'Generate All 18 Panels →';
+  document.getElementById('btnPause').style.display = 'none';
+  document.getElementById('progressCard').style.display = 'none';
+  document.getElementById('btnDlAll').disabled = true;
+  document.getElementById('btnS3Next').disabled = true;
+  buildImageGrid();
+}
+
+function updateProgress(i, total, prompt) {
+  const pct = Math.round((i / total) * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progFrac').textContent = `${i + 1} / ${total}`;
+  document.getElementById('progLabel').textContent = `Generating panel ${i + 1}...`;
+  document.getElementById('progInfo').textContent = prompt ? prompt.substring(0, 100) + '...' : '';
+  if (genStart && i > 0) {
+    const elapsed = Date.now() - genStart;
+    const perImg = elapsed / i;
+    const rem = (total - i) * perImg;
+    const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('progInfo').textContent += `\n~${m}m ${s}s remaining`;
+  }
+}
+
+// ══════════════════════════════════════════
+// CELL STATES
+// ══════════════════════════════════════════
+function setCellLoading(i) {
+  const c = document.getElementById(`cell_${i}`);
+  c.innerHTML = `<div class="cell-loading"><div class="spinner"></div><div class="spinner-label">GENERATING</div></div><div class="img-cell-num">P${i+1}</div>`;
+}
+function setCellDone(i, blob) {
+  const url = URL.createObjectURL(blob);
+  const c = document.getElementById(`cell_${i}`);
+  c.innerHTML = `<img src="${url}" alt="P${i+1}"><div class="img-cell-num">P${i+1}</div><div class="img-overlay"><button style="background:var(--gold);color:var(--bg);border:none;padding:7px 16px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase" onclick="dlSingle(${i})">Download</button><button style="background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.3);padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;margin-top:5px" onclick="retrySingle(${i})">Retry</button></div>`;
+}
+function setCellError(i, msg) {
+  const c = document.getElementById(`cell_${i}`);
+  c.innerHTML = `<div class="cell-error"><div class="cell-err-msg">${msg.substring(0,50)}</div><button style="margin-top:6px;background:transparent;color:var(--red);border:1px solid rgba(212,79,79,.3);padding:5px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em" onclick="retrySingle(${i})">Retry</button></div><div class="img-cell-num">P${i+1}</div>`;
+}
+
+async function retrySingle(i) {
+  const token = document.getElementById('hfToken').value.trim();
+  const model = document.getElementById('modelSelect').value;
+  const w = parseInt(document.getElementById('imgW').value);
+  const h = parseInt(document.getElementById('imgH').value);
+  const steps = parseInt(document.getElementById('steps').value);
+  const cfg = parseFloat(document.getElementById('cfg').value);
+  const neg = document.getElementById('negPrompt').value;
+  const seedKey = i % 2 === 0 ? 'f' : 'm';
+  setCellLoading(i);
+  try {
+    const blob = await callHF(token, model, prompts[i], neg, w, h, steps, cfg, charSeeds[seedKey]);
+    results[i] = { blob };
+    setCellDone(i, blob);
+    genDone++;
+    document.getElementById('stDone').textContent = genDone;
+    showToast(`Panel ${i+1} regenerated!`, 'ok');
+  } catch(e) {
+    setCellError(i, e.message);
+    showToast(e.message, 'err');
+  }
+}
+
+async function downloadAll() {
+  const done = Object.entries(results).filter(([,r]) => r.blob);
+  for (const [idx, r] of done) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.blob);
+    a.download = `p${parseInt(idx)+1}.png`;
+    a.click();
+    await sleep(200);
+  }
+}
+function dlSingle(i) {
+  const r = results[i];
+  if (!r?.blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(r.blob);
+  a.download = `p${i+1}.png`;
+  a.click();
+}
+
+// ══════════════════════════════════════════
+// AUTO-TRANSFER PANELS TO DIALOGUE
+// ══════════════════════════════════════════
+function autoTransferPanels() {
+  const done = Object.entries(results).filter(([,r]) => r.blob).sort(([a],[b]) => parseInt(a)-parseInt(b));
+  if (!done.length) return;
+  loadedPanels = done.map(([,r]) => r.blob);
+  renderPanelThumbs();
+  document.getElementById('autoTransferNote').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════
+// DIALOGUE
+// ══════════════════════════════════════════
+function handlePanels(e) {
+  const files = Array.from(e.target.files).sort((a,b) => {
+    return (parseInt(a.name.match(/\d+/)?.[0]||0)) - (parseInt(b.name.match(/\d+/)?.[0]||0));
+  });
+  loadedPanels = files;
+  renderPanelThumbs();
+}
+
+function renderPanelThumbs() {
+  const grid = document.getElementById('panelGridDiag');
+  grid.innerHTML = '';
+  loadedPanels.forEach((f, i) => {
+    const url = f instanceof Blob ? URL.createObjectURL(f) : URL.createObjectURL(f);
+    const d = document.createElement('div');
+    d.className = 'panel-thumb-d';
+    d.innerHTML = `<img src="${url}" loading="lazy"><div class="pth-num">P${i+1}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+function parseScript(raw) {
+  const panels = {}; let cur = null;
+  raw.split('\n').forEach(line => {
+    const pm = line.match(/^PANEL\s+(\d+)/i);
+    if (pm) { cur = parseInt(pm[1]); panels[cur] = []; }
+    else if (cur !== null) {
+      const dm = line.match(/^([A-Z][A-Z\s]+):\s*(.+)/);
+      if (dm) panels[cur].push({ char: dm[1].trim(), text: dm[2].trim() });
+    }
+  });
+  return panels;
+}
+
+function processDialogue() {
+  if (!loadedPanels.length) { document.getElementById('diagStatus').innerHTML = '<div class="status-bar status-err">Upload panels or generate them in Stage 3 first.</div>'; return; }
+  const script = document.getElementById('scriptArea').value.trim();
+  if (!script) { document.getElementById('diagStatus').innerHTML = '<div class="status-bar status-err">Paste your episode script first.</div>'; return; }
+  const parsed = parseScript(script);
+  const font = document.getElementById('bubFont').value;
+  const size = parseInt(document.getElementById('bubSize').value);
+  const bubColor = document.getElementById('bubColor').value;
+  const txtColor = document.getElementById('bubText').value;
+  document.getElementById('diagStatus').innerHTML = `<div class="status-bar status-info"><div class="spinner" style="width:12px;height:12px"></div>Processing ${loadedPanels.length} panels...</div>`;
+  processedCanvases = [];
+  let done = 0;
+  loadedPanels.forEach((src, idx) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const dialogues = parsed[idx + 1] || [];
+      const yStep = Math.floor(img.height / (dialogues.length + 1));
+      dialogues.forEach((d, di) => {
+        ctx.font = `bold ${size}px "${font}"`;
+        const maxW = img.width * 0.65;
+        const lines = wrapText(ctx, d.text, maxW);
+        const lh = size + 6;
+        const longest = lines.reduce((a,b) => ctx.measureText(a).width > ctx.measureText(b).width ? a : b, '');
+        const bw = Math.min(maxW + 40, ctx.measureText(longest).width + 40);
+        const bh = lines.length * lh + 24;
+        const bx = di % 2 === 0 ? 18 : img.width - bw - 18;
+        const by = yStep * (di + 1) - bh / 2;
+        ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 7;
+        ctx.fillStyle = bubColor; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 2.5;
+        roundRect(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = txtColor; ctx.font = `bold ${size}px "${font}"`;
+        ctx.textBaseline = 'top';
+        lines.forEach((l, li) => ctx.fillText(l, bx + 16, by + 12 + li * lh));
+      });
+      processedCanvases[idx] = canvas;
+      done++;
+      if (done === loadedPanels.length) showProcessed();
+    };
+    img.src = src instanceof Blob ? URL.createObjectURL(src) : URL.createObjectURL(src);
+  });
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' '); let line = ''; const lines = [];
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function showProcessed() {
+  const grid = document.getElementById('processedGrid');
+  grid.innerHTML = '';
+  processedCanvases.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'panel-thumb-d';
+    const img = document.createElement('img'); img.src = c.toDataURL();
+    const lbl = document.createElement('div'); lbl.className = 'pth-num'; lbl.textContent = `P${i+1}`;
+    d.appendChild(img); d.appendChild(lbl);
+    grid.appendChild(d);
+  });
+  document.getElementById('processedSection').style.display = 'block';
+  document.getElementById('diagStatus').innerHTML = `<div class="status-bar status-ok">All ${processedCanvases.length} panels processed successfully.</div>`;
+  // auto-fill image URLs for uploader
+  autoFillUploadUrls();
+}
+
+async function downloadProcessed() {
+  for (let i = 0; i < processedCanvases.length; i++) {
+    const a = document.createElement('a');
+    a.href = processedCanvases[i].toDataURL('image/png');
+    a.download = `p${i+1}.png`; a.click();
+    await sleep(180);
+  }
+}
+
+// ══════════════════════════════════════════
+// UPLOAD
+// ══════════════════════════════════════════
+async function connectSupabase() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  if (!url || !key) { showStatus('sbConnStatus', 'Fill in URL and key', 'err'); return; }
+  try {
+    sbClient = supabase.createClient(url, key);
+    const { data, error } = await sbClient.from('stories').select('id,title').order('created_at');
+    if (error) throw new Error(error.message);
+    const sel = document.getElementById('uploadStory');
+    sel.innerHTML = '<option value="">— Select Story —</option>' + data.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+    showStatus('sbConnStatus', `Connected — ${data.length} stories loaded`, 'ok');
+  } catch(e) {
+    showStatus('sbConnStatus', 'Error: ' + e.message, 'err');
+  }
+}
+
+async function autoConnectSupabase() {
+  try {
+    const url = document.getElementById('sbUrl').value.trim();
+    const key = document.getElementById('sbKey').value.trim();
+    if (url && key) {
+      sbClient = supabase.createClient(url, key);
+      const { data } = await sbClient.from('stories').select('id,title').order('created_at');
+      if (data) {
+        const sel = document.getElementById('uploadStory');
+        sel.innerHTML = '<option value="">— Select Story —</option>' + data.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+      }
+    }
+  } catch(e) {}
+}
+
+function autoFillUploadUrls() {
+  // Placeholder — actual upload happens via uploadToStorage
+  // Just show a note that processed panels are ready
+  if (processedCanvases.length > 0) {
+    document.getElementById('imageUrls').placeholder = `${processedCanvases.length} processed panels ready — click "Upload Images to Supabase Storage" to upload them and auto-fill URLs.`;
+  }
+}
+
+async function uploadToStorage(e) {
+  if (!sbClient) { showToast('Connect to Supabase first', 'err'); return; }
+  const files = Array.from(e.target.files).sort((a,b) => (parseInt(a.name.match(/\d+/)?.[0]||0)) - (parseInt(b.name.match(/\d+/)?.[0]||0)));
+  const wrap = document.getElementById('storageProgress');
+  const text = document.getElementById('storageProgressText');
+  const fill = document.getElementById('storageProgressFill');
+  wrap.style.display = 'block';
+  const urls = [];
+  for (let i = 0; i < files.length; i++) {
+    text.textContent = `Uploading panel ${i+1} of ${files.length}...`;
+    fill.style.width = Math.round(((i) / files.length) * 100) + '%';
+    const path = `chapters/${Date.now()}_${i+1}.png`;
+    const { data, error } = await sbClient.storage.from('manga-images').upload(path, files[i], { contentType: files[i].type, upsert: true });
+    if (error) { text.textContent = `Error: ${error.message}`; return; }
+    const { data: pub } = sbClient.storage.from('manga-images').getPublicUrl(path);
+    urls.push(pub.publicUrl);
+  }
+  fill.style.width = '100%';
+  text.textContent = `${files.length} panels uploaded.`;
+  document.getElementById('imageUrls').value = urls.join('\n');
+  showToast(`${files.length} images uploaded to Supabase!`, 'ok');
+}
+
+async function createChapter() {
+  if (!sbClient) { await connectSupabase(); return; }
+  const storyId = document.getElementById('uploadStory').value;
+  const epNum = parseInt(document.getElementById('uploadEp').value);
+  const title = document.getElementById('uploadTitle').value.trim();
+  const isFree = document.getElementById('uploadFree').value === 'true';
+  const cost = parseInt(document.getElementById('uploadCost').value);
+  const urlsRaw = document.getElementById('imageUrls').value.trim();
+  if (!storyId || !epNum || !title || !urlsRaw) {
+    showStatus('uploadStatus', 'Fill all fields and provide image URLs', 'err'); return;
+  }
+  const pages = urlsRaw.split('\n').map(u => u.trim()).filter(Boolean);
+  showStatus('uploadStatus', `Creating chapter with ${pages.length} panels...`, 'info');
+  const { data, error } = await sbClient.from('chapters').insert({ story_id:storyId, episode_number:epNum, title, pages, is_free:isFree, coin_cost:cost }).select();
+  if (error) { showStatus('uploadStatus', 'Error: ' + error.message, 'err'); return; }
+  await sbClient.from('stories').update({ chapters_count: epNum }).eq('id', storyId);
+  showStatus('uploadStatus', `Chapter "${title}" live with ${pages.length} panels. ID: ${data[0]?.id?.slice(0,8)}...`, 'ok');
+  showToast('Chapter published to MangaHive!', 'ok');
+}
+
+function startNewEpisode() {
+  selEp = -1; prompts = []; results = {}; processedCanvases = []; loadedPanels = [];
+  document.getElementById('btnS1Next').disabled = true;
+  document.querySelectorAll('.ep-chip').forEach(c => c.classList.remove('sel'));
+  document.getElementById('imageUrls').value = '';
+  document.getElementById('scriptArea').value = '';
+  document.getElementById('processedSection').style.display = 'none';
+  goToStage(1);
+  showToast('Ready for next episode!', 'ok');
+}
+
+// ══════════════════════════════════════════
+// HF API
+// ══════════════════════════════════════════
+async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
+  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const body = { inputs: prompt, parameters: { negative_prompt: neg, width: w, height: h, num_inference_steps: steps, guidance_scale: cfg, ...(seed ? { seed } : {}) } };
+  let retries = 3;
+  while (retries > 0) {
+    const res = await fetch(url, { method:'POST', headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.type.startsWith('image/')) return blob;
+      const txt = await blob.text();
+      const json = JSON.parse(txt).catch?.(() => ({})) || {};
+      if (json?.estimated_time) { await sleep(Math.min(json.estimated_time * 1000, 25000)); retries--; continue; }
+      throw new Error(json?.error || 'Non-image response');
+    }
+    if (res.status === 503) { const j = await res.json().catch(()=>({})); await sleep(Math.min((j.estimated_time||20)*1000,25000)); retries--; continue; }
+    if (res.status === 401) throw new Error('Invalid HF token');
+    if (res.status === 429) throw new Error('Rate limited — increase delay');
+    if (res.status === 402) throw new Error('Credits exhausted — upgrade HF PRO');
+    const j = await res.json().catch(()=>({}));
+    throw new Error(j?.error || `HTTP ${res.status}`);
+  }
+  throw new Error('Max retries reached');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function tokenChanged() {
+  const t = document.getElementById('hfToken').value.trim();
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (!t) { dot.className = 'status-dot'; txt.textContent = '—'; return; }
+  if (t.startsWith('hf_') && t.length > 10) { dot.className = 'status-dot online'; txt.textContent = 'Token set'; }
+  else { dot.className = 'status-dot error'; txt.textContent = 'Invalid'; }
+}
+
+function showStatus(id, msg, type) {
+  const icons = { ok:'✓', err:'✗', info:'◉' };
+  document.getElementById(id).innerHTML = `<div class="status-bar status-${type}">${icons[type]} ${msg}</div>`;
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = type === 'ok' ? 'rgba(74,171,122,.4)' : type === 'err' ? 'rgba(212,79,79,.4)' : 'var(--goldBorder)';
+  t.style.color = type === 'ok' ? 'var(--green)' : type === 'err' ? 'var(--red)' : 'var(--gold2)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
