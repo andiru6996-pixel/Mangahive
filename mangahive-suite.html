@@ -517,19 +517,20 @@ input[type=range]::-webkit-slider-thumb {
     <div class="logo-suite">Production Suite</div>
   </div>
   <div class="header-right">
-    <div class="hdr-token-wrap" style="background:var(--goldDim);border-color:var(--goldBorder)">
-      <span class="hdr-token-label" style="color:var(--green)">ENGINE</span>
-      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2)">Pollinations.ai — No token needed</span>
+    <div class="hdr-token-wrap">
+      <span class="hdr-token-label">Runware</span>
+      <input type="text" class="hdr-token-input" id="hfToken" placeholder="API key from runware.ai..." oninput="tokenChanged()" style="width:200px">
     </div>
-    <select id="modelSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:190px;letter-spacing:.05em;">
-      <option value="flux-anime">Flux Anime (Manga)</option>
-      <option value="any-dark">Any Dark (Action/Thriller)</option>
-      <option value="flux-realism">Flux Realism (Detailed)</option>
-      <option value="flux">Flux (General)</option>
+    <select id="modelSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:200px;letter-spacing:.05em;">
+      <option value="civitai:36520@76907">Anything V5 (Manga)</option>
+      <option value="civitai:9409@9409">Anything V3 (Manga)</option>
+      <option value="civitai:4468@4468">Counterfeit V3 (Anime)</option>
+      <option value="runware:100@1">FLUX Schnell (Fast)</option>
+      <option value="runware:101@1">FLUX Dev (Quality)</option>
     </select>
     <div class="hdr-status">
-      <div class="status-dot online" id="statusDot"></div>
-      <span id="statusText">Ready</span>
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Enter API key</span>
     </div>
   </div>
 </header>
@@ -1028,7 +1029,8 @@ let sbClient = null;
 // ══════════════════════════════════════════
 window.addEventListener('load', () => {
   buildStoryGrid();
-  /* Pollinations — no token needed */
+  const savedKey = localStorage.getItem('rw_key');
+  if (savedKey) { document.getElementById('hfToken').value = savedKey; tokenChanged(); }
   autoConnectSupabase();
 });
 
@@ -1213,6 +1215,8 @@ function buildImageGrid() {
 }
 
 async function startGeneration() {
+  const apiKey = document.getElementById('hfToken').value.trim();
+  if (!apiKey || apiKey.length < 10) { showToast('Enter your Runware API key in the header', 'err'); return; }
   if (!prompts.length) { buildPrompts(); }
   isRunning = true; isPaused = false; shouldStop = false;
   genDone = 0; genFail = 0; genStart = Date.now();
@@ -1222,8 +1226,8 @@ async function startGeneration() {
   const steps = parseInt(document.getElementById('steps').value);
   const cfg = parseFloat(document.getElementById('cfg').value);
   const neg = document.getElementById('negPrompt').value;
-  // PARALLEL BATCH SIZE — 2 at once (optimal for Pollinations rate limits)
-  const BATCH = 2;
+  // PARALLEL BATCH SIZE — 5 at once (Runware handles parallel requests well)
+  const BATCH = 5;
 
   document.getElementById('btnGenerate').disabled = true;
   document.getElementById('btnPause').style.display = 'inline-block';
@@ -1314,7 +1318,7 @@ function updateProgressBatch(done, total) {
     const perImg = elapsed / done;
     const rem = (total - done) * perImg;
     const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('progInfo').textContent = `~${m}m ${s}s remaining · 2 panels generating in parallel`;
+    document.getElementById('progInfo').textContent = `~${m}m ${s}s remaining · 5 panels generating in parallel`;
   }
 }
 
@@ -1629,65 +1633,91 @@ function startNewEpisode() {
 }
 
 // ══════════════════════════════════════════
-// IMAGE GENERATION — Pollinations.ai (no token, no CORS, works from browser)
+// IMAGE GENERATION — Runware.ai (fast, ~2s/image, free 1000 images)
 // ══════════════════════════════════════════
 async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
-  return callPollinations(prompt, neg, w, h, seed, model);
+  const apiKey = document.getElementById('hfToken').value.trim();
+  if (!apiKey) throw new Error('Enter your Runware API key in the header');
+  return callRunware(apiKey, model, prompt, neg, w, h, seed);
 }
 
-async function callPollinations(prompt, neg, w, h, seed, modelHint) {
-  let polModel = 'flux-anime';
-  if (modelHint && (modelHint.includes('dark') || modelHint.includes('any-dark'))) polModel = 'any-dark';
-  if (modelHint && modelHint.includes('realism')) polModel = 'flux-realism';
-  if (modelHint === 'flux') polModel = 'flux';
+async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
+  const taskUUID = crypto.randomUUID();
+  const useSeed = seed || Math.floor(Math.random() * 9999999);
 
-  const negPart = neg ? ` --no ${neg.substring(0, 60)}` : '';
-  const fullPrompt = encodeURIComponent(prompt.substring(0, 400) + negPart);
-  const useSeed = seed || Math.floor(Math.random() * 99999);
-  const url = `https://image.pollinations.ai/prompt/${fullPrompt}?model=${polModel}&width=${w}&height=${h}&seed=${useSeed}&nologo=true`;
+  const payload = [{
+    taskType: 'imageInference',
+    taskUUID,
+    positivePrompt: prompt.substring(0, 2000),
+    negativePrompt: neg ? neg.substring(0, 500) : 'blurry, low quality, bad anatomy, watermark',
+    model: model || 'civitai:36520@76907',
+    width: w,
+    height: h,
+    numberResults: 1,
+    outputType: 'URL',
+    outputFormat: 'PNG',
+    steps: 20,
+    CFGScale: 7,
+    seed: useSeed,
+    checkNSFW: false
+  }];
 
-  let retries = 6;
-  let waitMs = 4000;
+  let retries = 3;
   while (retries > 0) {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout per request
-      let res;
-      try {
-        res = await fetch(url, { signal: controller.signal });
-      } finally {
-        clearTimeout(timeout);
+      const res = await fetch('https://api.runware.ai/v1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.status === 401) throw new Error('Invalid Runware API key — check runware.ai dashboard');
+      if (res.status === 402) throw new Error('Runware credits exhausted — add credits at runware.ai');
+      if (res.status === 429) { await sleep(5000); retries--; continue; }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.errors?.[0]?.message || `HTTP ${res.status}`);
       }
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob.size > 5000 && blob.type.startsWith('image/')) return blob;
-        // Got tiny/bad image — retry
-        await sleep(waitMs); retries--; waitMs = Math.min(waitMs * 1.5, 15000); continue;
-      }
-      if (res.status === 429) {
-        await sleep(15000); retries--; continue;
-      }
-      if (res.status >= 500) {
-        await sleep(waitMs); retries--; waitMs = Math.min(waitMs * 1.5, 15000); continue;
-      }
-      throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const result = data?.data?.find(d => d.taskUUID === taskUUID);
+      if (!result?.imageURL) throw new Error('No image URL returned');
+
+      // Fetch the image blob from URL
+      const imgRes = await fetch(result.imageURL);
+      if (!imgRes.ok) throw new Error('Failed to fetch generated image');
+      const blob = await imgRes.blob();
+      if (blob.size > 1000) return blob;
+      throw new Error('Empty image returned');
+
     } catch(e) {
-      if (e.name === 'AbortError') {
-        retries--; await sleep(3000); continue;
-      }
       retries--;
-      if (retries === 0) throw new Error('Failed after retries — click Retry to try again');
-      await sleep(waitMs);
-      waitMs = Math.min(waitMs * 1.5, 15000);
+      if (retries === 0) throw new Error(e.message || 'Generation failed');
+      if (e.message.includes('API key') || e.message.includes('credits')) throw e;
+      await sleep(3000);
     }
   }
-  throw new Error('Failed — click Retry');
+  throw new Error('Max retries reached');
 }
 
 // ══════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════
-function tokenChanged() { /* Pollinations — no token needed */ }
+function tokenChanged() {
+  const t = document.getElementById('hfToken').value.trim();
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (!t) { dot.className = 'status-dot'; txt.textContent = 'Enter API key'; return; }
+  if (t.length > 20) {
+    dot.className = 'status-dot online'; txt.textContent = 'Key set — ready';
+    localStorage.setItem('rw_key', t);
+  } else {
+    dot.className = 'status-dot error'; txt.textContent = 'Key too short';
+  }
+}
 
 function showStatus(id, msg, type) {
   const icons = { ok:'✓', err:'✗', info:'◉' };
