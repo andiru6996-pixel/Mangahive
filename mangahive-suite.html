@@ -1376,19 +1376,27 @@ Male lead appearance: ${mDesc}
 Write 18 varied manga panel scene descriptions covering: establishing shots, character close-ups, action/emotional beats, dialogue scenes, dramatic moments, and a cliffhanger ending. Make them cinematic and specific about camera angle, lighting, and mood.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
+    // Use Vercel serverless proxy to avoid CORS
+    const apiBody = JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+    let text = '';
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: apiBody
+      });
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      text = data.content?.[0]?.text || '';
+    } catch(e) {
+      throw new Error('AI generation failed: ' + e.message + '. Make sure ANTHROPIC_API_KEY is set in Vercel environment variables.');
+    }
     const lines = text.split('
 ').map(l => l.trim()).filter(l => l.length > 10);
 
@@ -1753,19 +1761,26 @@ ${panelSummaries}
 Write the complete script for all ${panelCount} panels. Make it gripping, authentic, and true to the ${story.genre} genre. End with a moment that makes readers want the next episode.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
+    const apiBody2 = JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const data = await res.json();
-    const script = data.content?.[0]?.text?.trim();
+    let script = '';
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: apiBody2
+      });
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      script = data.content?.[0]?.text?.trim() || '';
+    } catch(e) {
+      throw new Error('AI generation failed: ' + e.message);
+    }
 
     if (!script || script.length < 50) throw new Error('AI returned empty script');
 
