@@ -1028,8 +1028,7 @@ let sbClient = null;
 // ══════════════════════════════════════════
 window.addEventListener('load', () => {
   buildStoryGrid();
-  const saved = localStorage.getItem('hf_token_mh');
-  if (saved) document.getElementById('hfToken').value = saved;
+  /* Pollinations — no token needed */
   autoConnectSupabase();
 });
 
@@ -1154,8 +1153,7 @@ function randomSeed(key) {
 }
 
 async function generateRef(key) {
-  const token = document.getElementById('hfToken').value.trim();
-  if (!token) { showToast('Enter HF token in header first', 'err'); return; }
+  const token = '';
   const story = STORIES[selStory];
   const ch = story.chars[key];
   const desc = document.getElementById(`charDesc_${key}`).value;
@@ -1215,10 +1213,8 @@ function buildImageGrid() {
 }
 
 async function startGeneration() {
-  const token = document.getElementById('hfToken').value.trim();
-  if (!token || !token.startsWith('hf_')) { showToast('Valid HF token required (starts with hf_)', 'err'); return; }
+  const token = '';
   if (!prompts.length) { buildPrompts(); }
-  localStorage.setItem('hf_token_mh', token);
   isRunning = true; isPaused = false; shouldStop = false;
   genDone = 0; genFail = 0; genStart = Date.now();
   const model = document.getElementById('modelSelect').value;
@@ -1328,7 +1324,7 @@ function setCellError(i, msg) {
 }
 
 async function retrySingle(i) {
-  const token = document.getElementById('hfToken').value.trim();
+  const token = '';
   const model = document.getElementById('modelSelect').value;
   const w = parseInt(document.getElementById('imgW').value);
   const h = parseInt(document.getElementById('imgH').value);
@@ -1646,14 +1642,7 @@ async function callPollinations(prompt, neg, w, h, seed, modelHint) {
 // ══════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════
-function tokenChanged() {
-  const t = document.getElementById('hfToken').value.trim();
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  if (!t) { dot.className = 'status-dot'; txt.textContent = '—'; return; }
-  if (t.startsWith('hf_') && t.length > 10) { dot.className = 'status-dot online'; txt.textContent = 'Token set'; }
-  else { dot.className = 'status-dot error'; txt.textContent = 'Invalid'; }
-}
+function tokenChanged() { /* Pollinations — no token needed */ }
 
 function showStatus(id, msg, type) {
   const icons = { ok:'✓', err:'✗', info:'◉' };
