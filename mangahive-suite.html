@@ -1222,8 +1222,8 @@ async function startGeneration() {
   const steps = parseInt(document.getElementById('steps').value);
   const cfg = parseFloat(document.getElementById('cfg').value);
   const neg = document.getElementById('negPrompt').value;
-  // PARALLEL BATCH SIZE — 3 at once for 3x speed
-  const BATCH = 3;
+  // PARALLEL BATCH SIZE — 2 at once (optimal for Pollinations rate limits)
+  const BATCH = 2;
 
   document.getElementById('btnGenerate').disabled = true;
   document.getElementById('btnPause').style.display = 'inline-block';
@@ -1265,7 +1265,7 @@ async function startGeneration() {
     await Promise.all(batchPromises);
 
     // Small gap between batches to avoid rate limiting
-    if (i + BATCH < prompts.length && !shouldStop) await sleep(2000);
+    if (i + BATCH < prompts.length && !shouldStop) await sleep(3000);
   }
 
   isRunning = false;
@@ -1314,7 +1314,7 @@ function updateProgressBatch(done, total) {
     const perImg = elapsed / done;
     const rem = (total - done) * perImg;
     const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('progInfo').textContent = `~${m}m ${s}s remaining · 3 panels generating in parallel`;
+    document.getElementById('progInfo').textContent = `~${m}m ${s}s remaining · 2 panels generating in parallel`;
   }
 }
 
@@ -1637,33 +1637,51 @@ async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
 
 async function callPollinations(prompt, neg, w, h, seed, modelHint) {
   let polModel = 'flux-anime';
-  if (modelHint && (modelHint.includes('dreamlike') || modelHint.includes('dark'))) polModel = 'any-dark';
+  if (modelHint && (modelHint.includes('dark') || modelHint.includes('any-dark'))) polModel = 'any-dark';
   if (modelHint && modelHint.includes('realism')) polModel = 'flux-realism';
+  if (modelHint === 'flux') polModel = 'flux';
 
-  const negPart = neg ? ` --no ${neg.substring(0, 80)}` : '';
-  const fullPrompt = encodeURIComponent(prompt + negPart);
+  const negPart = neg ? ` --no ${neg.substring(0, 60)}` : '';
+  const fullPrompt = encodeURIComponent(prompt.substring(0, 400) + negPart);
   const useSeed = seed || Math.floor(Math.random() * 99999);
-  const url = `https://image.pollinations.ai/prompt/${fullPrompt}?model=${polModel}&width=${w}&height=${h}&seed=${useSeed}&nologo=true&enhance=true&private=true`;
+  const url = `https://image.pollinations.ai/prompt/${fullPrompt}?model=${polModel}&width=${w}&height=${h}&seed=${useSeed}&nologo=true`;
 
-  let retries = 4;
+  let retries = 6;
+  let waitMs = 4000;
   while (retries > 0) {
     try {
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout per request
+      let res;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
       if (res.ok) {
         const blob = await res.blob();
-        if (blob.type.startsWith('image/')) return blob;
-        throw new Error('Non-image response');
+        if (blob.size > 5000 && blob.type.startsWith('image/')) return blob;
+        // Got tiny/bad image — retry
+        await sleep(waitMs); retries--; waitMs = Math.min(waitMs * 1.5, 15000); continue;
       }
-      if (res.status === 429) { await sleep(10000); retries--; continue; }
-      if (res.status >= 500) { await sleep(6000); retries--; continue; }
+      if (res.status === 429) {
+        await sleep(15000); retries--; continue;
+      }
+      if (res.status >= 500) {
+        await sleep(waitMs); retries--; waitMs = Math.min(waitMs * 1.5, 15000); continue;
+      }
       throw new Error(`HTTP ${res.status}`);
     } catch(e) {
+      if (e.name === 'AbortError') {
+        retries--; await sleep(3000); continue;
+      }
       retries--;
-      if (retries === 0) throw new Error(e.message || 'Generation failed — try again');
-      await sleep(5000);
+      if (retries === 0) throw new Error('Failed after retries — click Retry to try again');
+      await sleep(waitMs);
+      waitMs = Math.min(waitMs * 1.5, 15000);
     }
   }
-  throw new Error('Max retries reached');
+  throw new Error('Failed — click Retry');
 }
 
 // ══════════════════════════════════════════
