@@ -681,11 +681,32 @@ input[type=range]::-webkit-slider-thumb {
     </div>
   </div>
 
+  <div class="divider-gold"></div>
+
+  <div id="promptEditorSection" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:var(--white)">Panel Prompts</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px">Edit any prompt before generating. AI can auto-generate richer prompts based on your story.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="autoGeneratePrompts()"><span id="aiGenBtnText">✦ AI Generate All Prompts</span></button>
+        <button class="btn-ghost" onclick="resetToDefaultPrompts()">Reset Defaults</button>
+      </div>
+    </div>
+    <div id="aiGenStatus" style="display:none;margin-bottom:12px"></div>
+    <div style="background:var(--goldDim);border:1px solid var(--goldBorder);border-radius:6px;padding:10px 14px;margin-bottom:14px">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold2)">Character descriptions (hair, eyes, outfit) are auto-injected into every prompt — you only write the scene.</span>
+    </div>
+    <div id="promptEditorList" style="display:flex;flex-direction:column;gap:7px;max-height:480px;overflow-y:auto;padding-right:4px"></div>
+  </div>
+
   <div class="stage-nav">
     <div class="stage-nav-left">
       <button class="btn-ghost" onclick="goToStage(1)">← Back</button>
     </div>
     <div class="stage-nav-right">
+      <button class="btn-secondary" onclick="showPromptEditor()" id="btnEditPrompts" style="display:none">Edit Prompts</button>
       <button class="btn-primary" onclick="goToStage(3)">Begin Generating →</button>
     </div>
   </div>
@@ -727,6 +748,18 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 
   <div class="img-grid" id="imgGrid"></div>
+
+  <!-- POST-GENERATION PROMPT REVIEW -->
+  <div id="postGenSection" style="display:none;margin-top:32px">
+    <div class="divider-gold"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--white)">Regenerate Specific Panels</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px">Edit the prompt for any failed or unsatisfactory panel, then regenerate just that one.</div>
+      </div>
+    </div>
+    <div id="postGenPromptList" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;padding-right:4px"></div>
+  </div>
 
   <div class="stage-nav">
     <div class="stage-nav-left">
@@ -803,17 +836,62 @@ input[type=range]::-webkit-slider-thumb {
     </div>
 
     <div>
-      <div class="card-title" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:12px">Episode Script</div>
-      <div class="script-example">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="card-title" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:0">Episode Script</div>
+        <button class="btn-secondary" onclick="aiGenerateScript()" id="btnAIScript" style="padding:8px 16px">
+          <span id="aiScriptBtnText">✦ AI Write Script</span>
+        </button>
+      </div>
+
+      <div id="aiScriptStatus" style="display:none;margin-bottom:12px"></div>
+
+      <!-- AI Script Options (shown before generation) -->
+      <div id="aiScriptOptions" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px">Script Style</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:5px">Tone</label>
+            <select id="scriptTone" style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--white);font-family:'Outfit',sans-serif;font-size:12px;padding:7px 10px;border-radius:4px;outline:none">
+              <option value="dramatic">Dramatic & Intense</option>
+              <option value="romantic">Romantic & Tender</option>
+              <option value="witty">Sharp & Witty</option>
+              <option value="tense">Tense & Suspenseful</option>
+              <option value="emotional">Emotional & Raw</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:5px">Dialogue Lines / Panel</label>
+            <select id="scriptDensity" style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--white);font-family:'Outfit',sans-serif;font-size:12px;padding:7px 10px;border-radius:4px;outline:none">
+              <option value="light">Light — 1 line each</option>
+              <option value="medium" selected>Medium — 2 lines each</option>
+              <option value="heavy">Heavy — 3+ lines each</option>
+              <option value="mixed">Mixed — varies by scene</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:5px">Extra Instructions (optional)</label>
+          <input type="text" id="scriptExtra" placeholder="e.g. add inner monologue for panel 3, make ending cliffhanger..." style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--white);font-family:'Outfit',sans-serif;font-size:12px;padding:7px 10px;border-radius:4px;outline:none">
+        </div>
+      </div>
+
+      <div class="script-example" id="scriptFormatExample">
         <span style="color:var(--gold)">PANEL 1</span><br>
         <span>HANA: I can't believe I agreed to this.</span><br>
         <span>ETHAN: You didn't have a choice.</span><br><br>
         <span style="color:var(--gold)">PANEL 2</span><br>
         <span>HANA: There's always a choice.</span>
       </div>
+
       <div class="field">
-        <label class="field-label">Paste Script</label>
-        <textarea id="scriptArea" rows="14" placeholder="PANEL 1&#10;CHARACTER: dialogue here&#10;&#10;PANEL 2&#10;CHARACTER: next line..."></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label class="field-label" style="margin-bottom:0">Script</label>
+          <div style="display:flex;gap:6px">
+            <button onclick="copyScript()" style="background:transparent;color:var(--muted);border:1px solid var(--border2);padding:3px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em">Copy</button>
+            <button onclick="clearScript()" style="background:transparent;color:var(--muted);border:1px solid var(--border2);padding:3px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em">Clear</button>
+          </div>
+        </div>
+        <textarea id="scriptArea" rows="14" placeholder="PANEL 1&#10;CHARACTER: dialogue here&#10;&#10;PANEL 2&#10;CHARACTER: next line...&#10;&#10;— or click AI Write Script above to auto-generate —"></textarea>
       </div>
       <button class="btn-primary" onclick="processDialogue()">Apply Dialogue to All Panels →</button>
       <div id="diagStatus"></div>
@@ -1090,7 +1168,7 @@ function goToStage(n) {
   if (n === 2 && (selStory < 0 || selEp < 0)) { showToast('Select a story and episode first', 'err'); return; }
   if (n === 3) buildPrompts();
   if (n === 3) buildImageGrid();
-  if (n === 2) buildCharCards();
+  if (n === 2) { buildCharCards(); setTimeout(showPromptEditor, 100); }
 
   currentStage = n;
   document.querySelectorAll('.stage').forEach((s, i) => s.classList.toggle('active', i + 1 === n));
@@ -1180,22 +1258,169 @@ async function generateRef(key) {
 // ══════════════════════════════════════════
 // PROMPTS
 // ══════════════════════════════════════════
+function getCharAnchor(key) {
+  const story = STORIES[selStory];
+  const desc = document.getElementById(`charDesc_${key}`)?.value || story.chars[key].desc;
+  // Extract and lock specific physical traits to enforce consistency
+  const name = document.getElementById(`charName_${key}`)?.value || story.chars[key].name;
+  return `(${name}: ${desc}), same character, consistent appearance`;
+}
+
 function buildPrompts() {
   if (selStory < 0 || selEp < 0) return;
   const story = STORIES[selStory];
   const ep = story.episodes.find(e => e.n === selEp);
   if (!ep) return;
-  const fDesc = document.getElementById('charDesc_f')?.value || story.chars.f.desc;
-  const mDesc = document.getElementById('charDesc_m')?.value || story.chars.m.desc;
-  const style = "anime style, manga illustration, clean linework, highly detailed, expressive faces, masterpiece, best quality";
+  const fAnchor = getCharAnchor('f');
+  const mAnchor = getCharAnchor('m');
+  const style = "anime style, manga illustration, clean linework, highly detailed, expressive faces, masterpiece, best quality, character consistency";
+  const neg = "different hair color, hair color change, inconsistent character, different eye color";
+
   prompts = ep.scenes.map((scene, i) => {
-    const useF = i % 3 !== 2;
-    const useM = i % 3 !== 0;
-    const charAnchor = useF && useM ? `${fDesc}, ${mDesc}` : useF ? fDesc : mDesc;
-    return `${style}, ${scene}, ${charAnchor}, ${story.setting}`;
+    // Alternate primary focus but always include both anchors
+    const primary = i % 2 === 0 ? fAnchor : mAnchor;
+    const secondary = i % 2 === 0 ? mAnchor : fAnchor;
+    return `${style}, ${scene}, ${primary}, ${secondary}, ${story.setting}`;
   });
+
   document.getElementById('stTotal').textContent = prompts.length;
   document.getElementById('stQueue').textContent = prompts.length;
+  renderPromptEditor();
+  renderPostGenPrompts();
+}
+
+function showPromptEditor() {
+  if (selStory < 0 || selEp < 0) return;
+  buildPrompts();
+  document.getElementById('promptEditorSection').style.display = 'block';
+  document.getElementById('btnEditPrompts').style.display = 'inline-block';
+}
+
+function renderPromptEditor() {
+  const list = document.getElementById('promptEditorList');
+  if (!list || !prompts.length) return;
+  list.innerHTML = prompts.map((p, i) => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.18em">PANEL ${i+1}</span>
+        <button onclick="rebuildSinglePrompt(${i})" style="background:transparent;color:var(--muted);border:1px solid var(--border2);padding:3px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em">Reset</button>
+      </div>
+      <textarea id="pe_${i}" rows="2" style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--white2);font-family:'DM Mono',monospace;font-size:10px;padding:7px 10px;border-radius:4px;outline:none;resize:vertical;line-height:1.6" oninput="prompts[${i}]=this.value">${p}</textarea>
+    </div>
+  `).join('');
+}
+
+function rebuildSinglePrompt(i) {
+  const story = STORIES[selStory];
+  const ep = story.episodes.find(e => e.n === selEp);
+  if (!ep) return;
+  const fAnchor = getCharAnchor('f');
+  const mAnchor = getCharAnchor('m');
+  const style = "anime style, manga illustration, clean linework, highly detailed, expressive faces, masterpiece, best quality, character consistency";
+  const primary = i % 2 === 0 ? fAnchor : mAnchor;
+  const secondary = i % 2 === 0 ? mAnchor : fAnchor;
+  prompts[i] = `${style}, ${ep.scenes[i]}, ${primary}, ${secondary}, ${story.setting}`;
+  const ta = document.getElementById(`pe_${i}`);
+  if (ta) ta.value = prompts[i];
+}
+
+function resetToDefaultPrompts() {
+  buildPrompts();
+  renderPromptEditor();
+  showToast('Prompts reset to defaults', 'ok');
+}
+
+function renderPostGenPrompts() {
+  const list = document.getElementById('postGenPromptList');
+  if (!list || !prompts.length) return;
+  list.innerHTML = prompts.map((p, i) => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.15em;white-space:nowrap;margin-top:3px">P${i+1}</span>
+      <textarea id="pgp_${i}" rows="2" style="flex:1;background:var(--bg4);border:1px solid var(--border2);color:var(--white2);font-family:'DM Mono',monospace;font-size:10px;padding:6px 9px;border-radius:4px;outline:none;resize:vertical;line-height:1.6" oninput="prompts[${i}]=this.value">${p}</textarea>
+      <button onclick="retrySingle(${i})" style="background:var(--gold);color:var(--bg);border:none;padding:7px 12px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;white-space:nowrap;letter-spacing:.08em">Regen</button>
+    </div>
+  `).join('');
+}
+
+async function autoGeneratePrompts() {
+  if (selStory < 0 || selEp < 0) { showToast('Select story and episode first', 'err'); return; }
+  const story = STORIES[selStory];
+  const ep = story.episodes.find(e => e.n === selEp);
+  const fName = document.getElementById('charName_f')?.value || story.chars.f.name;
+  const mName = document.getElementById('charName_m')?.value || story.chars.m.name;
+  const fDesc = document.getElementById('charDesc_f')?.value || story.chars.f.desc;
+  const mDesc = document.getElementById('charDesc_m')?.value || story.chars.m.desc;
+
+  const btn = document.getElementById('aiGenBtnText');
+  const statusEl = document.getElementById('aiGenStatus');
+  btn.textContent = '⟳ Generating...';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<div class="status-bar status-info"><div class="spinner" style="width:12px;height:12px;margin-right:6px"></div>Claude AI is writing 18 cinematic panel prompts for your episode...</div>';
+
+  const systemPrompt = `You are an expert manga/anime art director. Generate exactly 18 image generation prompts for manga panels.
+RULES:
+- Each prompt must be a single line, no numbering
+- Focus on scene composition, camera angle, lighting, emotion
+- DO NOT include character names or descriptions in the scene (these are injected separately)
+- Write only the scene/action/mood/composition
+- Separate each prompt with a newline
+- Return ONLY the 18 prompts, nothing else`;
+
+  const userPrompt = `Story: ${story.title} (${story.genre})
+Episode ${ep.n}: "${ep.t}"
+Synopsis: ${ep.summary}
+Setting: ${story.setting}
+Female lead appearance: ${fDesc}
+Male lead appearance: ${mDesc}
+
+Write 18 varied manga panel scene descriptions covering: establishing shots, character close-ups, action/emotional beats, dialogue scenes, dramatic moments, and a cliffhanger ending. Make them cinematic and specific about camera angle, lighting, and mood.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const lines = text.split('
+').map(l => l.trim()).filter(l => l.length > 10);
+
+    if (lines.length < 10) throw new Error('AI returned too few prompts');
+
+    const fAnchor = getCharAnchor('f');
+    const mAnchor = getCharAnchor('m');
+    const style = "anime style, manga illustration, clean linework, highly detailed, expressive faces, masterpiece, best quality, character consistency";
+
+    prompts = lines.slice(0, 18).map((scene, i) => {
+      const primary = i % 2 === 0 ? fAnchor : mAnchor;
+      const secondary = i % 2 === 0 ? mAnchor : fAnchor;
+      return `${style}, ${scene}, ${primary}, ${secondary}, ${story.setting}`;
+    });
+
+    // Pad if less than 18
+    while (prompts.length < 18) {
+      const i = prompts.length;
+      prompts.push(`${style}, continuation scene panel ${i+1}, ${fAnchor}, ${mAnchor}, ${story.setting}`);
+    }
+
+    renderPromptEditor();
+    btn.textContent = '✦ AI Generate All Prompts';
+    statusEl.innerHTML = '<div class="status-bar status-ok">✓ 18 AI-generated prompts ready — review and edit below, then generate!</div>';
+    showToast('AI prompts generated!', 'ok');
+
+  } catch(e) {
+    btn.textContent = '✦ AI Generate All Prompts';
+    statusEl.innerHTML = `<div class="status-bar status-err">✗ ${e.message} — using default prompts instead</div>`;
+    buildPrompts();
+    renderPromptEditor();
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1283,6 +1508,9 @@ async function startGeneration() {
     document.getElementById('btnS3Next').disabled = false;
     autoTransferPanels();
     showToast(`${genDone} panels done! Proceed to Dialogue →`, 'ok');
+    // Show post-gen prompt editor for regeneration
+    document.getElementById('postGenSection').style.display = 'block';
+    renderPostGenPrompts();
   }
 }
 
@@ -1428,6 +1656,131 @@ function renderPanelThumbs() {
     d.innerHTML = `<img src="${url}" loading="lazy"><div class="pth-num">P${i+1}</div>`;
     grid.appendChild(d);
   });
+}
+
+function copyScript() {
+  const ta = document.getElementById('scriptArea');
+  if (!ta.value) return;
+  navigator.clipboard.writeText(ta.value).then(() => showToast('Script copied!', 'ok'));
+}
+
+function clearScript() {
+  document.getElementById('scriptArea').value = '';
+  document.getElementById('diagStatus').innerHTML = '';
+}
+
+async function aiGenerateScript() {
+  if (selStory < 0 || selEp < 0) { showToast('Select story and episode first', 'err'); return; }
+
+  const story = STORIES[selStory];
+  const ep = story.episodes.find(e => e.n === selEp);
+  const fName = document.getElementById('charName_f')?.value || story.chars.f.name;
+  const mName = document.getElementById('charName_m')?.value || story.chars.m.name;
+  const fDesc = document.getElementById('charDesc_f')?.value || story.chars.f.desc;
+  const mDesc = document.getElementById('charDesc_m')?.value || story.chars.m.desc;
+  const tone = document.getElementById('scriptTone')?.value || 'dramatic';
+  const density = document.getElementById('scriptDensity')?.value || 'medium';
+  const extra = document.getElementById('scriptExtra')?.value || '';
+  const panelCount = prompts.length || ep.scenes.length;
+
+  const densityGuide = {
+    light: '1 line of dialogue per panel maximum. Short, punchy.',
+    medium: '2 lines of dialogue per panel. Natural back-and-forth.',
+    heavy: '3-4 lines per panel. Rich, layered conversation.',
+    mixed: 'Vary dialogue density — action panels get 0-1 lines, emotional panels get 3-4 lines.'
+  };
+
+  const toneGuide = {
+    dramatic: 'Bold, intense, high-stakes. Every line carries weight.',
+    romantic: 'Soft tension, longing, unspoken feelings. Subtext is key.',
+    witty: 'Sharp comebacks, clever banter, personality shines through.',
+    tense: 'Short sentences, clipped responses, paranoia and urgency.',
+    emotional: 'Vulnerable, honest, raw emotions. Characters reveal themselves.'
+  };
+
+  const btn = document.getElementById('aiScriptBtnText');
+  const statusEl = document.getElementById('aiScriptStatus');
+  btn.textContent = '⟳ Writing script...';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<div class="status-bar status-info"><div class="spinner" style="width:12px;height:12px;margin-right:6px"></div>Claude AI is writing your episode script...</div>';
+
+  // Build panel context from prompts
+  const panelSummaries = (prompts.length ? prompts : ep.scenes).slice(0, panelCount).map((p, i) => {
+    // Extract scene description (remove character anchors — first 80 chars of scene)
+    const scene = ep.scenes[i] || p.split(',')[2] || `panel ${i+1}`;
+    return `Panel ${i+1}: ${scene}`;
+  }).join('
+');
+
+  const systemPrompt = `You are a professional manga/webtoon scriptwriter. You write authentic, emotionally engaging dialogue that feels real and gripping. Your scripts follow strict manga format.
+
+FORMAT RULES (follow exactly):
+PANEL 1
+CHARACTER_NAME: dialogue line
+CHARACTER_NAME: response
+
+PANEL 2
+CHARACTER_NAME: dialogue line
+
+Rules:
+- Use ONLY these character names: ${fName}, ${mName}
+- Some panels may have no dialogue (action panels) — write "PANEL X" then leave blank
+- Inner thoughts use asterisks: ${fName}: *This can't be happening...*
+- Sound effects use brackets: [CRASH], [silence]
+- Never break the format
+- Return ONLY the script, no explanations`;
+
+  const userPrompt = `Write a complete manga episode script.
+
+Story: ${story.title}
+Genre: ${story.genre}
+Episode ${ep.n}: "${ep.t}"
+Synopsis: ${ep.summary}
+
+Characters:
+- ${fName}: ${fDesc}
+- ${mName}: ${mDesc}
+
+Setting: ${story.setting}
+
+Tone: ${tone} — ${toneGuide[tone]}
+Dialogue density: ${densityGuide[density]}
+${extra ? `Special instructions: ${extra}` : ''}
+
+Panel breakdown (${panelCount} panels):
+${panelSummaries}
+
+Write the complete script for all ${panelCount} panels. Make it gripping, authentic, and true to the ${story.genre} genre. End with a moment that makes readers want the next episode.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await res.json();
+    const script = data.content?.[0]?.text?.trim();
+
+    if (!script || script.length < 50) throw new Error('AI returned empty script');
+
+    document.getElementById('scriptArea').value = script;
+    document.getElementById('scriptFormatExample').style.display = 'none';
+
+    btn.textContent = '✦ AI Write Script';
+    statusEl.innerHTML = `<div class="status-bar status-ok">✓ Script written for ${panelCount} panels — review, edit if needed, then apply dialogue!</div>`;
+    showToast('Script generated! Review and apply →', 'ok');
+
+  } catch(e) {
+    btn.textContent = '✦ AI Write Script';
+    statusEl.innerHTML = `<div class="status-bar status-err">✗ ${e.message}</div>`;
+    showToast('Script generation failed: ' + e.message, 'err');
+  }
 }
 
 function parseScript(raw) {
