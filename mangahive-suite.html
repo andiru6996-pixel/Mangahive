@@ -1612,25 +1612,48 @@ function startNewEpisode() {
 async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
   const url = `https://api-inference.huggingface.co/models/${model}`;
   const body = { inputs: prompt, parameters: { negative_prompt: neg, width: w, height: h, num_inference_steps: steps, guidance_scale: cfg, ...(seed ? { seed } : {}) } };
-  let retries = 3;
+  let retries = 4;
   while (retries > 0) {
-    const res = await fetch(url, { method:'POST', headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Wait-For-Model': 'true'
+        },
+        body: JSON.stringify(body)
+      });
+    } catch(fetchErr) {
+      retries--;
+      if (retries === 0) throw new Error('Network error — check your internet or HF may be down');
+      await sleep(3000);
+      continue;
+    }
     if (res.ok) {
       const blob = await res.blob();
       if (blob.type.startsWith('image/')) return blob;
-      const txt = await blob.text();
-      const json = JSON.parse(txt).catch?.(() => ({})) || {};
-      if (json?.estimated_time) { await sleep(Math.min(json.estimated_time * 1000, 25000)); retries--; continue; }
-      throw new Error(json?.error || 'Non-image response');
+      let json = {};
+      try { const txt = await blob.text(); json = JSON.parse(txt); } catch(e) {}
+      if (json?.estimated_time) { await sleep(Math.min(json.estimated_time * 1000, 30000)); retries--; continue; }
+      if (json?.error?.includes('loading')) { await sleep(20000); retries--; continue; }
+      throw new Error(json?.error || 'Non-image response from model');
     }
-    if (res.status === 503) { const j = await res.json().catch(()=>({})); await sleep(Math.min((j.estimated_time||20)*1000,25000)); retries--; continue; }
-    if (res.status === 401) throw new Error('Invalid HF token');
-    if (res.status === 429) throw new Error('Rate limited — increase delay');
-    if (res.status === 402) throw new Error('Credits exhausted — upgrade HF PRO');
-    const j = await res.json().catch(()=>({}));
+    if (res.status === 503) {
+      let j = {}; try { j = await res.json(); } catch(e) {}
+      const wait = Math.min((j.estimated_time || 25) * 1000, 30000);
+      await sleep(wait); retries--; continue;
+    }
+    if (res.status === 401) throw new Error('Invalid HF token — check your token');
+    if (res.status === 403) throw new Error('Token missing Inference permission — regenerate with "Make calls to Inference Providers" checked');
+    if (res.status === 429) throw new Error('Rate limited — increase delay between panels');
+    if (res.status === 402) throw new Error('Free credits exhausted — upgrade to HF PRO ($9/mo)');
+    let j = {}; try { j = await res.json(); } catch(e) {}
     throw new Error(j?.error || `HTTP ${res.status}`);
   }
-  throw new Error('Max retries reached');
+  throw new Error('Max retries reached — model may be unavailable');
 }
 
 // ══════════════════════════════════════════
