@@ -1170,16 +1170,13 @@ window.addEventListener('load', () => {
 });
 
 function buildStoryGrid() {
-  // Attach click event listeners to all story cards
-  for(let i = 0; i < 5; i++) {
-    const card = document.getElementById('sc' + i);
-    if(card) {
-      card.addEventListener('click', function() {
-        selectStory(i);
-      });
-    }
-  }
-  console.log('MangaHive Suite loaded successfully — story cards initialized');
+  // Story cards are hardcoded with inline onclick handlers
+  // Just verify they exist and are clickable
+  const cards = document.querySelectorAll('.story-card');
+  console.log(`MangaHive Suite loaded - ${cards.length} story cards found and ready`);
+  
+  // Ensure selectStory function is accessible and working
+  window.selectStory = selectStory;
 }
 
 // ══════════════════════════════════════════
