@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MangaHive — Production Suite</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg: #070709;
@@ -506,6 +505,13 @@ input[type=range]::-webkit-slider-thumb {
 </style>
 </head>
 <body>
+
+<script>
+// Safety net: build story grid as soon as possible
+document.addEventListener('DOMContentLoaded', function() {
+  try { if(typeof buildStoryGrid === 'function') buildStoryGrid(); } catch(e) {}
+});
+</script>
 
 <div class="toast" id="toast"></div>
 
@@ -1105,11 +1111,30 @@ let sbClient = null;
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
-window.addEventListener('load', () => {
-  buildStoryGrid();
+// Run on DOM ready (faster than 'load', doesn't wait for CDN scripts)
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    buildStoryGrid();
+  } catch(e) {
+    console.error('buildStoryGrid error:', e);
+  }
   const savedKey = localStorage.getItem('rw_key');
-  if (savedKey) { document.getElementById('hfToken').value = savedKey; tokenChanged(); }
-  autoConnectSupabase();
+  if (savedKey) {
+    const el = document.getElementById('hfToken');
+    if (el) { el.value = savedKey; tokenChanged(); }
+  }
+});
+
+// Also run on load as backup
+window.addEventListener('load', () => {
+  try {
+    // Re-run in case DOMContentLoaded missed anything
+    const grid = document.getElementById('storyGrid');
+    if (grid && grid.children.length === 0) buildStoryGrid();
+    autoConnectSupabase();
+  } catch(e) {
+    console.error('load init error:', e);
+  }
 });
 
 function buildStoryGrid() {
@@ -2103,5 +2128,6 @@ function showToast(msg, type) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 </body>
 </html>
