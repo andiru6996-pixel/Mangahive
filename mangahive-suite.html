@@ -1170,8 +1170,16 @@ window.addEventListener('load', () => {
 });
 
 function buildStoryGrid() {
-  // Cards are hardcoded in HTML - just ensure they are clickable
-  console.log('MangaHive Suite loaded successfully');
+  // Attach click event listeners to all story cards
+  for(let i = 0; i < 5; i++) {
+    const card = document.getElementById('sc' + i);
+    if(card) {
+      card.addEventListener('click', function() {
+        selectStory(i);
+      });
+    }
+  }
+  console.log('MangaHive Suite loaded successfully — story cards initialized');
 }
 
 // ══════════════════════════════════════════
