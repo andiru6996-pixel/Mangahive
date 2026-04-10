@@ -1183,15 +1183,19 @@ function buildStoryGrid() {
 // STORY / EPISODE SELECTION
 // ══════════════════════════════════════════
 function selectStory(i) {
-  selStory = i; selEp = -1;
+  console.log('selectStory called with index:', i);
+  selStory = i; 
+  selEp = -1;
   // Update selected state
   for(let j = 0; j < 5; j++) {
     const card = document.getElementById('sc' + j);
+    console.log(`Card sc${j}:`, card, 'should be selected:', j === i);
     if(card) card.classList.toggle('sel', j === i);
   }
-  document.getElementById('btnS1Next').disabled = true;
+  document.getElementById('btnS1Next').disabled = false;
   document.getElementById('epSummary').style.display = 'none';
   buildEpChips();
+  console.log('selectStory complete. selStory = ' + selStory);
 }
 
 function buildEpChips() {
