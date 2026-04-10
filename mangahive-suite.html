@@ -510,7 +510,11 @@ input[type=range]::-webkit-slider-thumb {
 <script>
 // Safety net: build story grid as soon as possible
 document.addEventListener('DOMContentLoaded', function() {
-  try { if(typeof buildStoryGrid === 'function') buildStoryGrid(); } catch(e) {}
+  try { 
+    if(typeof buildStoryGrid === 'function') buildStoryGrid(); 
+  } catch(e) { 
+    console.error('DOMContentLoaded buildStoryGrid error:', e); 
+  }
 });
 </script>
 
@@ -1057,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════
 const STORIES = [
   {
-    title:"The Devil's Contract", genre:"Romance", short:"devil",
+    title:"The Devil\'s Contract", genre:"Romance", short:"devil",
     chars: {
       f: { name:"Hana Yoshida", desc:"young Japanese-American woman, long straight black hair, warm brown eyes, elegant oval face, slender build, professional business attire, architect", seed:42001 },
       m: { name:"Ethan Blackwood", desc:"tall American man, dark brown styled hair, sharp cold grey eyes, strong jaw, athletic build, expensive sharp suit, billionaire CEO", seed:42002 }
@@ -1461,8 +1465,7 @@ Write 18 varied manga panel scene descriptions covering: establishing shots, cha
     } catch(e) {
       throw new Error('AI generation failed: ' + e.message + '. Make sure ANTHROPIC_API_KEY is set in Vercel environment variables.');
     }
-    const lines = text.split('
-').map(l => l.trim()).filter(l => l.length > 10);
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 10);
 
     if (lines.length < 10) throw new Error('AI returned too few prompts');
 
@@ -1781,8 +1784,7 @@ async function aiGenerateScript() {
     // Extract scene description (remove character anchors — first 80 chars of scene)
     const scene = ep.scenes[i] || p.split(',')[2] || `panel ${i+1}`;
     return `Panel ${i+1}: ${scene}`;
-  }).join('
-');
+  }).join('\n');
 
   const systemPrompt = `You are a professional manga/webtoon scriptwriter. You write authentic, emotionally engaging dialogue that feels real and gripping. Your scripts follow strict manga format.
 
