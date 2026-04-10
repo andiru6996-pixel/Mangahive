@@ -580,7 +580,38 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="stage-desc">Select the story and episode you want to produce. All prompts, character seeds, and dialogue will be pre-loaded for your selection.</div>
   </div>
 
-  <div class="story-grid" id="storyGrid"></div>
+  <div class="story-grid" id="storyGrid">
+    <div class="story-card" id="sc0" onclick="selectStory(0)">
+      <div class="sc-check">✓</div>
+      <div class="sc-num">STORY 01</div>
+      <div class="sc-title">The Devil&#39;s Contract</div>
+      <div class="sc-genre">Romance</div>
+    </div>
+    <div class="story-card" id="sc1" onclick="selectStory(1)">
+      <div class="sc-check">✓</div>
+      <div class="sc-num">STORY 02</div>
+      <div class="sc-title">Moonlit Rival</div>
+      <div class="sc-genre">Enemies to Lovers</div>
+    </div>
+    <div class="story-card" id="sc2" onclick="selectStory(2)">
+      <div class="sc-check">✓</div>
+      <div class="sc-num">STORY 03</div>
+      <div class="sc-title">Blade and Blossom</div>
+      <div class="sc-genre">Action / Romance</div>
+    </div>
+    <div class="story-card" id="sc3" onclick="selectStory(3)">
+      <div class="sc-check">✓</div>
+      <div class="sc-num">STORY 04</div>
+      <div class="sc-title">The Last Shrine</div>
+      <div class="sc-genre">Fantasy / Romance</div>
+    </div>
+    <div class="story-card" id="sc4" onclick="selectStory(4)">
+      <div class="sc-check">✓</div>
+      <div class="sc-num">STORY 05</div>
+      <div class="sc-title">Hollow Crown</div>
+      <div class="sc-genre">Drama / Thriller</div>
+    </div>
+  </div>
 
   <div class="field">
     <label class="field-label">Episode</label>
@@ -1138,14 +1169,8 @@ window.addEventListener('load', () => {
 });
 
 function buildStoryGrid() {
-  const grid = document.getElementById('storyGrid');
-  grid.innerHTML = '';
-  STORIES.forEach((s, i) => {
-    const d = document.createElement('div');
-    d.className = 'story-card'; d.onclick = () => selectStory(i);
-    d.innerHTML = `<div class="sc-check">✓</div><div class="sc-num">STORY 0${i+1}</div><div class="sc-title">${s.title}</div><div class="sc-genre">${s.genre}</div>`;
-    grid.appendChild(d);
-  });
+  // Cards are hardcoded in HTML - just ensure they are clickable
+  console.log('MangaHive Suite loaded successfully');
 }
 
 // ══════════════════════════════════════════
@@ -1153,7 +1178,11 @@ function buildStoryGrid() {
 // ══════════════════════════════════════════
 function selectStory(i) {
   selStory = i; selEp = -1;
-  document.querySelectorAll('.story-card').forEach((c, j) => c.classList.toggle('sel', j === i));
+  // Update selected state
+  for(let j = 0; j < 5; j++) {
+    const card = document.getElementById('sc' + j);
+    if(card) card.classList.toggle('sel', j === i);
+  }
   document.getElementById('btnS1Next').disabled = true;
   document.getElementById('epSummary').style.display = 'none';
   buildEpChips();
