@@ -2313,7 +2313,7 @@ async function callReplicate(apiKey, prompt, neg, w, h) {
 }
 
 async function callHF_Direct(apiKey, prompt, neg, w, h) {
-  // HuggingFace Inference API - use better model
+  // HuggingFace Inference API - use inference endpoint
   const body = {
     inputs: prompt.substring(0, 1000),
     parameters: {
@@ -2326,51 +2326,75 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
   };
 
   let retries = 5;
-  while (retries > 0) {
-    try {
-      const res = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3-medium', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
+  const models = [
+    'stabilityai/stable-diffusion-3-medium',
+    'black-forest-labs/FLUX.1-dev',
+    'runwayml/stable-diffusion-v1-5'
+  ];
+  
+  for (const model of models) {
+    retries = 5;
+    while (retries > 0) {
+      try {
+        const url = `https://api-inference.huggingface.co/models/${model}`;
+        console.log(`Trying HF model: ${model}`);
+        
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        }).catch(e => {
+          throw new Error(`Fetch failed: ${e.message}`);
+        });
 
-      if (res.status === 401) throw new Error('Invalid HuggingFace API token — get one from https://huggingface.co/settings/tokens');
-      if (res.status === 503) {
-        // Model loading
-        await sleep(5000);
+        if (res.status === 401) throw new Error('Invalid HuggingFace API token — get one from https://huggingface.co/settings/tokens');
+        if (res.status === 503) {
+          console.log('Model loading, retrying...');
+          await sleep(5000);
+          retries--;
+          continue;
+        }
+        if (res.status === 429) {
+          console.log('Rate limited, retrying...');
+          await sleep(10000);
+          retries--;
+          continue;
+        }
+        
+        if (!res.ok) {
+          const text = await res.text();
+          try {
+            const err = JSON.parse(text);
+            throw new Error(err.error?.[0] || err.message || text);
+          } catch (e) {
+            throw new Error(`HTTP ${res.status}: ${text}`);
+          }
+        }
+
+        const blob = await res.blob();
+        if (blob.size > 1000) {
+          console.log(`Success with ${model}, size: ${blob.size}`);
+          return blob;
+        }
+        throw new Error('Empty response');
+
+      } catch(e) {
+        console.error(`Model ${model} failed:`, e.message);
         retries--;
-        continue;
+        if (retries === 0) {
+          // Try next model
+          break;
+        }
+        if (e.message.includes('API token') || e.message.includes('401')) throw e;
+        await sleep(2000);
       }
-      if (res.status === 429) {
-        // Rate limited
-        await sleep(10000);
-        retries--;
-        continue;
-      }
-      
-      if (!res.ok) {
-        const text = await res.text();
-        const err = JSON.parse(text).error?.[0] || text;
-        throw new Error(err || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      if (blob.size > 1000) return blob;
-      throw new Error('Empty response from HuggingFace');
-
-    } catch(e) {
-      retries--;
-      if (retries === 0) {
-        throw new Error(`HF error: ${e.message}. Try again in a moment (models may be loading).`);
-      }
-      if (e.message.includes('API token') || e.message.includes('401')) throw e;
-      await sleep(3000);
     }
   }
-  throw new Error('HuggingFace request failed after retries');
+  
+  throw new Error('All HuggingFace models failed. Try Replicate or OpenAI instead.');
 }
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
