@@ -528,9 +528,16 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="logo-suite">Production Suite</div>
   </div>
   <div class="header-right">
-    <div class="hdr-token-wrap">
-      <span class="hdr-token-label">Runware</span>
-      <input type="text" class="hdr-token-input" id="hfToken" placeholder="API key from runware.ai..." oninput="tokenChanged()" style="width:200px">
+    <select id="providerSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:150px;letter-spacing:.05em;" onchange="updateProviderFields()">
+      <option value="runware">Runware</option>
+      <option value="stability">Stability AI</option>
+      <option value="replicate">Replicate</option>
+      <option value="huggingface">HuggingFace</option>
+      <option value="openai">OpenAI DALL-E 3</option>
+    </select>
+    <div class="hdr-token-wrap" id="tokenWrap1">
+      <span class="hdr-token-label" id="tokenLabel1">API Key</span>
+      <input type="text" class="hdr-token-input" id="hfToken" placeholder="Enter API key..." oninput="tokenChanged()" style="width:180px">
     </div>
     <select id="modelSelect" style="background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:8px 28px 8px 10px;border-radius:4px;outline:none;width:200px;letter-spacing:.05em;">
       <option value="civitai:36520@76907">Anything V5 (Manga)</option>
@@ -541,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </select>
     <div class="hdr-status">
       <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Enter API key</span>
+      <span id="statusText">Select provider</span>
     </div>
   </div>
 </header>
@@ -1150,11 +1157,16 @@ let sbClient = null;
 // Run on DOM ready (faster than 'load', doesn't wait for CDN scripts)
 document.addEventListener('DOMContentLoaded', () => {
   try {
+    // Initialize provider selector and restore saved keys
+    const defaultProvider = localStorage.getItem('activeProvider') || 'runware';
+    document.getElementById('providerSelect').value = defaultProvider;
+    updateProviderFields();
+    
     buildStoryGrid();
   } catch(e) {
     console.error('buildStoryGrid error:', e);
   }
-  const savedKey = localStorage.getItem('rw_key');
+  const savedKey = localStorage.getItem(`api_key_${defaultProvider}`);
   if (savedKey) {
     const el = document.getElementById('hfToken');
     if (el) { el.value = savedKey; tokenChanged(); }
@@ -2074,12 +2086,53 @@ function startNewEpisode() {
 }
 
 // ══════════════════════════════════════════
-// IMAGE GENERATION — Runware.ai (fast, ~2s/image, free 1000 images)
+// IMAGE GENERATION — Multi-Provider Support
 // ══════════════════════════════════════════
+let activeProvider = 'runware';
+
+function updateProviderFields() {
+  activeProvider = document.getElementById('providerSelect').value;
+  localStorage.setItem('activeProvider', activeProvider);
+  
+  const label = document.getElementById('tokenLabel1');
+  const input = document.getElementById('hfToken');
+  
+  const config = {
+    runware: { label: 'Runware API Key', placeholder: 'from runware.ai...' },
+    stability: { label: 'Stability API Key', placeholder: 'from platform.stability.ai...' },
+    replicate: { label: 'Replicate API Token', placeholder: 'from replicate.com...' },
+    huggingface: { label: 'HuggingFace Token', placeholder: 'from huggingface.co...' },
+    openai: { label: 'OpenAI API Key', placeholder: 'from platform.openai.com...' }
+  };
+  
+  const prov = config[activeProvider] || config.runware;
+  label.textContent = prov.label;
+  input.placeholder = prov.placeholder;
+  input.value = localStorage.getItem(`api_key_${activeProvider}`) || '';
+  tokenChanged();
+}
+
 async function callHF(token, model, prompt, neg, w, h, steps, cfg, seed) {
+  const provider = document.getElementById('providerSelect').value;
   const apiKey = document.getElementById('hfToken').value.trim();
-  if (!apiKey) throw new Error('Enter your Runware API key in the header');
-  return callRunware(apiKey, model, prompt, neg, w, h, seed);
+  
+  if (!apiKey) throw new Error(`Enter your ${provider.toUpperCase()} API key in the header`);
+  
+  // Save key to localStorage for this provider
+  localStorage.setItem(`api_key_${provider}`, apiKey);
+  
+  switch(provider) {
+    case 'stability':
+      return callStability(apiKey, prompt, neg, w, h);
+    case 'replicate':
+      return callReplicate(apiKey, prompt, neg, w, h);
+    case 'huggingface':
+      return callHF_Direct(apiKey, prompt, neg, w, h);
+    case 'openai':
+      return callOpenAI(apiKey, prompt, neg, w, h);
+    default:
+      return callRunware(apiKey, model, prompt, neg, w, h, seed);
+  }
 }
 
 async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
@@ -2127,7 +2180,6 @@ async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
       const result = data?.data?.find(d => d.taskUUID === taskUUID);
       if (!result?.imageURL) throw new Error('No image URL returned');
 
-      // Fetch the image blob from URL
       const imgRes = await fetch(result.imageURL);
       if (!imgRes.ok) throw new Error('Failed to fetch generated image');
       const blob = await imgRes.blob();
@@ -2144,17 +2196,176 @@ async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
   throw new Error('Max retries reached');
 }
 
+async function callStability(apiKey, prompt, neg, w, h) {
+  const body = {
+    prompt: prompt.substring(0, 1000),
+    negative_prompt: neg?.substring(0, 500) || '',
+    width: w,
+    height: h,
+    steps: 30,
+    cfg_scale: 7,
+    samples: 1,
+    sampler: 'k_dpmpp_2m'
+  };
+
+  const res = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (res.status === 401) throw new Error('Invalid Stability API key');
+  if (res.status === 402) throw new Error('Stability credits exhausted — purchase more at platform.stability.ai');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  if (!data?.artifacts?.[0]?.base64) throw new Error('No image data returned');
+
+  const binary = atob(data.artifacts[0].base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: 'image/png' });
+}
+
+async function callReplicate(apiKey, prompt, neg, w, h) {
+  // Replicate webhooks require async polling, simpler: use their sync endpoint
+  const body = {
+    version: 'db21e45d3f7023abc2e30247db10e449', // Stable Diffusion 3
+    input: {
+      prompt: prompt.substring(0, 1000),
+      negative_prompt: neg?.substring(0, 500) || '',
+      width: w,
+      height: h,
+      num_inference_steps: 30,
+      guidance_scale: 7
+    }
+  };
+
+  const res = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (res.status === 401) throw new Error('Invalid Replicate API token');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  let prediction = data;
+
+  // Poll for completion (max 5 mins)
+  for (let i = 0; i < 60; i++) {
+    if (prediction.status === 'succeeded') {
+      const imgUrl = prediction.output?.[0];
+      if (!imgUrl) throw new Error('No output image');
+      const imgRes = await fetch(imgUrl);
+      if (!imgRes.ok) throw new Error('Failed to fetch image');
+      return await imgRes.blob();
+    }
+    if (prediction.status === 'failed') throw new Error(prediction.error || 'Generation failed');
+    
+    await sleep(5000);
+    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: { 'Authorization': `Token ${apiKey}` }
+    });
+    prediction = await pollRes.json();
+  }
+  throw new Error('Generation timeout');
+}
+
+async function callHF_Direct(apiKey, prompt, neg, w, h) {
+  const body = {
+    inputs: prompt.substring(0, 1000),
+    parameters: {
+      negative_prompt: neg?.substring(0, 500) || '',
+      height: h,
+      width: w,
+      num_inference_steps: 30,
+      guidance_scale: 7
+    }
+  };
+
+  const res = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (res.status === 401) throw new Error('Invalid HuggingFace API token');
+  if (res.status === 529) throw new Error('HuggingFace model loading — try again in 10 seconds');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.[0] || `HTTP ${res.status}`);
+  }
+
+  return await res.blob();
+}
+
+async function callOpenAI(apiKey, prompt, neg, w, h) {
+  const body = {
+    model: 'dall-e-3',
+    prompt: prompt.substring(0, 4000),
+    n: 1,
+    size: `${w}x${h}`,
+    quality: 'standard',
+    response_format: 'url'
+  };
+
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (res.status === 401) throw new Error('Invalid OpenAI API key');
+  if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  const imgUrl = data?.data?.[0]?.url;
+  if (!imgUrl) throw new Error('No image URL returned');
+
+  const imgRes = await fetch(imgUrl);
+  if (!imgRes.ok) throw new Error('Failed to fetch image');
+  return await imgRes.blob();
+}
+
 // ══════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════
 function tokenChanged() {
   const t = document.getElementById('hfToken').value.trim();
+  const provider = document.getElementById('providerSelect').value;
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
+  
   if (!t) { dot.className = 'status-dot'; txt.textContent = 'Enter API key'; return; }
-  if (t.length > 20) {
-    dot.className = 'status-dot online'; txt.textContent = 'Key set — ready';
-    localStorage.setItem('rw_key', t);
+  if (t.length > 10) {
+    dot.className = 'status-dot online'; 
+    txt.textContent = `${provider} key set — ready`;
+    // Save to localStorage
+    localStorage.setItem(`api_key_${provider}`, t);
   } else {
     dot.className = 'status-dot error'; txt.textContent = 'Key too short';
   }
