@@ -2349,115 +2349,86 @@ async function callReplicate(apiKey, prompt, neg, w, h) {
 }
 
 async function callHF_Direct(apiKey, prompt, neg, w, h) {
-  // HF needs dimensions as multiples of 8
   const validW = Math.round(w / 8) * 8;
   const validH = Math.round(h / 8) * 8;
-  
-  const body = {
-    inputs: prompt.substring(0, 1000),
-    parameters: {
-      negative_prompt: neg?.substring(0, 500) || 'blurry, low quality',
-      height: validH,
-      width: validW,
-      num_inference_steps: 20,
-      guidance_scale: 7.0
-    }
-  };
+  const negPrompt = neg?.substring(0, 500) || 'blurry, low quality';
 
-  let retries = 5;
+  // Each model has different supported parameters — send only what each accepts
   const models = [
-    'black-forest-labs/FLUX.1-schnell',
-    'stabilityai/stable-diffusion-xl-base-1.0',
-    'stabilityai/stable-diffusion-2-1'
+    {
+      id: 'stabilityai/stable-diffusion-xl-base-1.0',
+      body: {
+        inputs: prompt.substring(0, 1000),
+        parameters: { negative_prompt: negPrompt, height: validH, width: validW, num_inference_steps: 20, guidance_scale: 7.0 }
+      }
+    },
+    {
+      id: 'stabilityai/stable-diffusion-2-1',
+      body: {
+        inputs: prompt.substring(0, 1000),
+        parameters: { negative_prompt: negPrompt, height: Math.min(validH, 768), width: Math.min(validW, 768), num_inference_steps: 20, guidance_scale: 7.0 }
+      }
+    },
+    {
+      id: 'black-forest-labs/FLUX.1-schnell',
+      body: {
+        inputs: prompt.substring(0, 1000),
+        parameters: { num_inference_steps: 4 }  // FLUX does not support neg_prompt or custom dims via HF API
+      }
+    },
+    {
+      id: 'Lykon/dreamshaper-7',
+      body: {
+        inputs: prompt.substring(0, 1000),
+        parameters: { negative_prompt: negPrompt, num_inference_steps: 20, guidance_scale: 7.0 }
+      }
+    }
   ];
-  
-  for (const model of models) {
-    retries = 3;
+
+  const hfErrors = [];
+
+  for (const { id, body } of models) {
+    let retries = 3;
     while (retries > 0) {
       try {
-        const url = `https://api-inference.huggingface.co/models/${model}`;
-        console.log(`Trying HF model: ${model} with ${validW}x${validH}`);
-        
+        console.log(`Trying HF model: ${id}`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-        
-        const res = await fetch(url, {
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for cold starts
+
+        const res = await fetch(`https://api-inference.huggingface.co/models/${id}`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: controller.signal
         });
-        
         clearTimeout(timeoutId);
 
-        if (res.status === 401) {
-          throw new Error('Invalid HuggingFace API token — get one from https://huggingface.co/settings/tokens');
-        }
-        if (res.status === 503) {
-          console.log('Model loading, retrying...');
-          await sleep(8000);
-          retries--;
-          continue;
-        }
-        if (res.status === 429) {
-          console.log('Rate limited, retrying...');
-          await sleep(10000);
-          retries--;
-          continue;
-        }
-        
+        if (res.status === 401) throw new Error('Invalid HuggingFace API token — get one from huggingface.co/settings/tokens');
+        if (res.status === 503) { await sleep(10000); retries--; continue; }
+        if (res.status === 429) { await sleep(12000); retries--; continue; }
         if (!res.ok) {
           const text = await res.text();
-          console.log(`HTTP ${res.status}: ${text}`);
-          throw new Error(`HTTP ${res.status}`);
+          throw new Error(`HTTP ${res.status}: ${text.substring(0, 200)}`);
         }
 
         const blob = await res.blob();
         if (blob.size > 5000) {
-          console.log(`✓ Success with ${model}, size: ${blob.size}`);
+          console.log(`✓ HF success: ${id} (${blob.size} bytes)`);
           return blob;
         }
-        throw new Error(`Image too small: ${blob.size} bytes`);
+        throw new Error(`Response too small (${blob.size} bytes) — likely an error JSON`);
 
       } catch(e) {
-        console.error(`Model ${model} failed:`, e.message);
+        if (e.message.includes('API token') || e.message.includes('401')) throw e;
+        console.error(`${id} failed:`, e.message);
         retries--;
-        
-        if (e.message.includes('API token') || e.message.includes('401')) {
-          throw e;
-        }
-        
-        if (retries > 0 && !e.message.includes('timeout')) {
-          await sleep(3000);
-        }
+        if (retries > 0) await sleep(3000);
+        else hfErrors.push(`${id}: ${e.message}`);
       }
     }
   }
-  
-  // Auto-fallback: try Replicate, then OpenAI, if their keys are stored
-  const replicateKey = localStorage.getItem('api_key_replicate');
-  if (replicateKey) {
-    console.log('HF failed — falling back to Replicate...');
-    try {
-      return await callReplicate(replicateKey, prompt, neg, w, h);
-    } catch(e) {
-      // If Replicate is rate-limited (no payment method) fall through to OpenAI
-      const skip = e.message.includes('429') || e.message.includes('402') ||
-                   e.message.includes('throttled') || e.message.includes('rate limit') ||
-                   e.message.includes('credit') || e.message.includes('billing');
-      if (!skip) throw e;
-      console.warn('Replicate unavailable, trying OpenAI...');
-    }
-  }
-  const openaiKey = localStorage.getItem('api_key_openai');
-  if (openaiKey) {
-    console.log('HF failed — falling back to OpenAI...');
-    return callOpenAI(openaiKey, prompt, neg, w, h);
-  }
-  throw new Error('All providers failed or unavailable — check your API keys and account balances.');
+
+  throw new Error(`All HuggingFace models failed:\n${hfErrors.join('\n')}`);
 }
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
