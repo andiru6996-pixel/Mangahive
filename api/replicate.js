@@ -16,14 +16,21 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'create') {
-      // Create prediction
-      const replicateRes = await fetch('https://api.replicate.com/v1/predictions', {
+      // Use model-specific endpoint when model owner/name is provided (no version hash needed)
+      let url = 'https://api.replicate.com/v1/predictions';
+      let requestBody = body;
+      if (body.model && !body.version) {
+        url = `https://api.replicate.com/v1/models/${body.model}/predictions`;
+        requestBody = { input: body.input };
+      }
+
+      const replicateRes = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Token ${token}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(requestBody)
       });
 
       if (!replicateRes.ok) {

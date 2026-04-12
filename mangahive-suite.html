@@ -2441,14 +2441,20 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
   const replicateKey = localStorage.getItem('api_key_replicate');
   if (replicateKey) {
     console.log('HF failed — falling back to Replicate...');
-    return callReplicate(replicateKey, prompt, neg, w, h);
+    try {
+      return await callReplicate(replicateKey, prompt, neg, w, h);
+    } catch(e) {
+      // If Replicate is rate-limited (no payment method) fall through to OpenAI
+      if (!e.message.includes('429') && !e.message.includes('throttled') && !e.message.includes('rate limit')) throw e;
+      console.warn('Replicate rate-limited, trying OpenAI...');
+    }
   }
   const openaiKey = localStorage.getItem('api_key_openai');
   if (openaiKey) {
     console.log('HF failed — falling back to OpenAI...');
     return callOpenAI(openaiKey, prompt, neg, w, h);
   }
-  throw new Error('All HuggingFace models failed — add a Replicate or OpenAI key to enable auto-fallback.');
+  throw new Error('All providers failed or unavailable — check your API keys and account balances.');
 }
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
