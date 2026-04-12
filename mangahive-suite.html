@@ -2368,9 +2368,9 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
 
   let retries = 5;
   const models = [
-    'stabilityai/stable-diffusion-3-medium',
-    'black-forest-labs/FLUX.1-schnittstelle',
-    'runwayml/stable-diffusion-v1-5'
+    'black-forest-labs/FLUX.1-schnell',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-2-1'
   ];
   
   for (const model of models) {
@@ -2439,7 +2439,18 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
     }
   }
   
-  throw new Error('All HuggingFace models failed — try Replicate or OpenAI instead.');
+  // Auto-fallback: try Replicate, then OpenAI, if their keys are stored
+  const replicateKey = localStorage.getItem('api_key_replicate');
+  if (replicateKey) {
+    console.log('HF failed — falling back to Replicate...');
+    return callReplicate(replicateKey, prompt, neg, w, h);
+  }
+  const openaiKey = localStorage.getItem('api_key_openai');
+  if (openaiKey) {
+    console.log('HF failed — falling back to OpenAI...');
+    return callOpenAI(openaiKey, prompt, neg, w, h);
+  }
+  throw new Error('All HuggingFace models failed — add a Replicate or OpenAI key to enable auto-fallback.');
 }
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
