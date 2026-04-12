@@ -2262,15 +2262,17 @@ async function callStability(apiKey, prompt, neg, w, h) {
 
 async function callReplicate(apiKey, prompt, neg, w, h) {
   // Use Vercel serverless proxy to avoid CORS issues
+  // Using FLUX.1-dev (more current and reliable than SD3)
   const body = {
-    version: 'db21e45d3f7023abc2e30247db10e449', // Stable Diffusion 3
+    version: 'bab9de10ff1705273c73e1a7b5d16efc53c8ab20', // FLUX.1-dev by Black Forest Labs
     input: {
       prompt: prompt.substring(0, 1000),
+      prompt_upsampling: true,
       negative_prompt: neg?.substring(0, 500) || '',
       width: w,
       height: h,
-      num_inference_steps: 25,
-      guidance_scale: 7.5
+      num_inference_steps: 4,
+      guidance_scale: 3.5
     }
   };
 
