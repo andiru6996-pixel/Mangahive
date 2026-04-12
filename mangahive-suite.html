@@ -2445,8 +2445,11 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
       return await callReplicate(replicateKey, prompt, neg, w, h);
     } catch(e) {
       // If Replicate is rate-limited (no payment method) fall through to OpenAI
-      if (!e.message.includes('429') && !e.message.includes('throttled') && !e.message.includes('rate limit')) throw e;
-      console.warn('Replicate rate-limited, trying OpenAI...');
+      const skip = e.message.includes('429') || e.message.includes('402') ||
+                   e.message.includes('throttled') || e.message.includes('rate limit') ||
+                   e.message.includes('credit') || e.message.includes('billing');
+      if (!skip) throw e;
+      console.warn('Replicate unavailable, trying OpenAI...');
     }
   }
   const openaiKey = localStorage.getItem('api_key_openai');
