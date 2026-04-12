@@ -2395,10 +2395,10 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for cold starts
 
-        const res = await fetch(`https://api-inference.huggingface.co/models/${id}`, {
+        const res = await fetch('/api/huggingface', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: apiKey, model: id, body }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -2407,8 +2407,8 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
         if (res.status === 503) { await sleep(10000); retries--; continue; }
         if (res.status === 429) { await sleep(12000); retries--; continue; }
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}: ${text.substring(0, 200)}`);
+          const err = await res.json().catch(() => ({}));
+          throw new Error(`HTTP ${res.status}: ${err.error || ''}`.substring(0, 200));
         }
 
         const blob = await res.blob();
