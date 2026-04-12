@@ -1174,12 +1174,17 @@ window.addEventListener('load', () => {
 });
 
 function buildStoryGrid() {
-  // Story cards are hardcoded with inline onclick handlers
-  // Just verify they exist and are clickable
+  // Attach click listeners to story cards using forEach to avoid closure issues
   const cards = document.querySelectorAll('.story-card');
-  console.log(`MangaHive Suite loaded - ${cards.length} story cards found and ready`);
+  cards.forEach((card, index) => {
+    card.addEventListener('click', function(e) {
+      e.stopPropagation();
+      selectStory(index);
+    });
+  });
+  console.log(`MangaHive Suite loaded - ${cards.length} story cards with click listeners attached`);
   
-  // Ensure selectStory function is accessible and working
+  // Ensure selectStory function is accessible globally
   window.selectStory = selectStory;
 }
 
