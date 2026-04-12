@@ -2198,15 +2198,26 @@ async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
 
 async function callStability(apiKey, prompt, neg, w, h) {
   const body = {
-    prompt: prompt.substring(0, 1000),
-    negative_prompt: neg?.substring(0, 500) || '',
-    width: w,
-    height: h,
-    steps: 30,
+    text_prompts: [
+      {
+        text: prompt.substring(0, 1000),
+        weight: 1.0
+      }
+    ],
     cfg_scale: 7,
+    height: h,
+    width: w,
     samples: 1,
-    sampler: 'k_dpmpp_2m'
+    steps: 30,
+    sampler: 'K_EULER'
   };
+
+  if (neg) {
+    body.text_prompts.push({
+      text: neg.substring(0, 500),
+      weight: -1.0
+    });
+  }
 
   const res = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
     method: 'POST',
