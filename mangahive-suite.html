@@ -2264,12 +2264,10 @@ async function callReplicate(apiKey, prompt, neg, w, h) {
   // Use Vercel serverless proxy to avoid CORS issues
   // Using Stable Diffusion 3 (simpler, more reliable)
   const body = {
-    version: 'a4a8d91ff0ff58af78bf735860f5c3fbdec56887538df581467b3331ec2cd189', // Stable Diffusion 3 Medium
+    model: 'black-forest-labs/flux-schnell',
     input: {
       prompt: prompt.substring(0, 1000),
-      negative_prompt: neg?.substring(0, 500) || '',
-      num_inference_steps: 28,
-      guidance_scale: 7.0,
+      num_inference_steps: 4,
       width: w,
       height: h
     }
