@@ -2197,6 +2197,22 @@ async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
 }
 
 async function callStability(apiKey, prompt, neg, w, h) {
+  // Map requested dimensions to Stability AI valid sizes
+  const validSizes = {
+    '512x768': '832x1216',   // Portrait manga size → closest valid
+    '640x768': '832x1216',   
+    '768x512': '1216x832',   // Landscape → closest valid
+    '512x512': '1024x1024',
+    '768x768': '1024x1024',
+    '1024x768': '1344x768',
+    '768x1024': '768x1344',
+    'default': '832x1216'    // Default to portrait manga
+  };
+  
+  const sizeKey = `${w}x${h}`;
+  const stableSize = validSizes[sizeKey] || validSizes['default'];
+  const [stableW, stableH] = stableSize.split('x').map(Number);
+
   const body = {
     text_prompts: [
       {
@@ -2205,8 +2221,8 @@ async function callStability(apiKey, prompt, neg, w, h) {
       }
     ],
     cfg_scale: 7,
-    height: h,
-    width: w,
+    height: stableH,
+    width: stableW,
     samples: 1,
     steps: 30,
     sampler: 'K_EULER'
