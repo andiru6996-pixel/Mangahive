@@ -2313,31 +2313,37 @@ async function callReplicate(apiKey, prompt, neg, w, h) {
 }
 
 async function callHF_Direct(apiKey, prompt, neg, w, h) {
-  // HuggingFace Inference API - use inference endpoint
+  // HF needs dimensions as multiples of 8
+  const validW = Math.round(w / 8) * 8;
+  const validH = Math.round(h / 8) * 8;
+  
   const body = {
     inputs: prompt.substring(0, 1000),
     parameters: {
       negative_prompt: neg?.substring(0, 500) || 'blurry, low quality',
-      height: h,
-      width: w,
-      num_inference_steps: 25,
-      guidance_scale: 7.5
+      height: validH,
+      width: validW,
+      num_inference_steps: 20,
+      guidance_scale: 7.0
     }
   };
 
   let retries = 5;
   const models = [
     'stabilityai/stable-diffusion-3-medium',
-    'black-forest-labs/FLUX.1-dev',
+    'black-forest-labs/FLUX.1-schnittstelle',
     'runwayml/stable-diffusion-v1-5'
   ];
   
   for (const model of models) {
-    retries = 5;
+    retries = 3;
     while (retries > 0) {
       try {
         const url = `https://api-inference.huggingface.co/models/${model}`;
-        console.log(`Trying HF model: ${model}`);
+        console.log(`Trying HF model: ${model} with ${validW}x${validH}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         
         const res = await fetch(url, {
           method: 'POST',
@@ -2345,15 +2351,18 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(body)
-        }).catch(e => {
-          throw new Error(`Fetch failed: ${e.message}`);
+          body: JSON.stringify(body),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
-        if (res.status === 401) throw new Error('Invalid HuggingFace API token — get one from https://huggingface.co/settings/tokens');
+        if (res.status === 401) {
+          throw new Error('Invalid HuggingFace API token — get one from https://huggingface.co/settings/tokens');
+        }
         if (res.status === 503) {
           console.log('Model loading, retrying...');
-          await sleep(5000);
+          await sleep(8000);
           retries--;
           continue;
         }
@@ -2366,70 +2375,85 @@ async function callHF_Direct(apiKey, prompt, neg, w, h) {
         
         if (!res.ok) {
           const text = await res.text();
-          try {
-            const err = JSON.parse(text);
-            throw new Error(err.error?.[0] || err.message || text);
-          } catch (e) {
-            throw new Error(`HTTP ${res.status}: ${text}`);
-          }
+          console.log(`HTTP ${res.status}: ${text}`);
+          throw new Error(`HTTP ${res.status}`);
         }
 
         const blob = await res.blob();
-        if (blob.size > 1000) {
-          console.log(`Success with ${model}, size: ${blob.size}`);
+        if (blob.size > 5000) {
+          console.log(`✓ Success with ${model}, size: ${blob.size}`);
           return blob;
         }
-        throw new Error('Empty response');
+        throw new Error(`Image too small: ${blob.size} bytes`);
 
       } catch(e) {
         console.error(`Model ${model} failed:`, e.message);
         retries--;
-        if (retries === 0) {
-          // Try next model
-          break;
+        
+        if (e.message.includes('API token') || e.message.includes('401')) {
+          throw e;
         }
-        if (e.message.includes('API token') || e.message.includes('401')) throw e;
-        await sleep(2000);
+        
+        if (retries > 0 && !e.message.includes('timeout')) {
+          await sleep(3000);
+        }
       }
     }
   }
   
-  throw new Error('All HuggingFace models failed. Try Replicate or OpenAI instead.');
+  throw new Error('All HuggingFace models failed — try Replicate or OpenAI instead.');
 }
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
+  // OpenAI DALL-E 3 only supports these dimensions
+  const validSizes = {
+    '512x768': '1024x1792',   // Portrait → tall portrait
+    '640x768': '1024x1792',
+    '768x512': '1792x1024',   // Landscape
+    '512x512': '1024x1024',
+    '768x768': '1024x1024',
+    'default': '1024x1792'    // Default portrait
+  };
+  
+  const sizeKey = `${w}x${h}`;
+  const size = validSizes[sizeKey] || validSizes['default'];
+
   const body = {
     model: 'dall-e-3',
     prompt: prompt.substring(0, 4000),
     n: 1,
-    size: `${w}x${h}`,
+    size: size,
     quality: 'standard',
     response_format: 'url'
   };
 
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
 
-  if (res.status === 401) throw new Error('Invalid OpenAI API key');
-  if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    if (res.status === 401) throw new Error('Invalid OpenAI API key');
+    if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const imgUrl = data?.data?.[0]?.url;
+    if (!imgUrl) throw new Error('No image URL returned');
+
+    const imgRes = await fetch(imgUrl);
+    if (!imgRes.ok) throw new Error('Failed to fetch image');
+    return await imgRes.blob();
+  } catch(e) {
+    throw new Error(`OpenAI error: ${e.message}`);
   }
-
-  const data = await res.json();
-  const imgUrl = data?.data?.[0]?.url;
-  if (!imgUrl) throw new Error('No image URL returned');
-
-  const imgRes = await fetch(imgUrl);
-  if (!imgRes.ok) throw new Error('Failed to fetch image');
-  return await imgRes.blob();
 }
 
 // ══════════════════════════════════════════
