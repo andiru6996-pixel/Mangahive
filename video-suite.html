@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangaHive — Video Storyboard Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#070709; --bg2:#0d0d11; --bg3:#13131a; --bg4:#1a1a23; --bg5:#20202c;
+  --gold:#c4a35a; --gold2:#debb7a; --gold3:#f0d9a8;
+  --goldDim:rgba(196,163,90,0.09); --goldBorder:rgba(196,163,90,0.2); --goldBorder2:rgba(196,163,90,0.35);
+  --white:#ece8df; --white2:#b8b4ab; --muted:#68655e; --muted2:#3a3935;
+  --green:#4aab7a; --greenDim:rgba(74,171,122,0.12);
+  --red:#d44f4f; --redDim:rgba(212,79,79,0.12);
+  --blue:#4d7fd0; --border:rgba(255,255,255,0.05);
+  --border2:rgba(255,255,255,0.09); --border3:rgba(255,255,255,0.14);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Outfit',sans-serif;font-weight:300;min-height:100vh}
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--goldBorder);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--white);letter-spacing:-.02em}
+.logo span{color:var(--gold)}
+.logo-tag{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-left:10px}
+.nav-link{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;text-decoration:none;border:1px solid var(--border2);padding:6px 14px;border-radius:3px}
+.nav-link:hover{color:var(--gold);border-color:var(--goldBorder)}
+.header-right{display:flex;align-items:center;gap:12px}
+.token-wrap{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:5px 10px}
+.token-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;white-space:nowrap}
+.token-input{background:transparent;border:none;outline:none;color:var(--white);font-family:'DM Mono',monospace;font-size:11px;width:200px}
+select.provider-sel{background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'DM Mono',monospace;font-size:10px;padding:5px 8px;border-radius:4px;outline:none}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.status-dot.ok{background:var(--green)}
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.page-head{margin-bottom:36px}
+.page-eyebrow{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.25em;text-transform:uppercase;margin-bottom:8px}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;color:var(--white);line-height:1.1}
+.page-desc{font-size:13px;color:var(--muted);margin-top:8px;max-width:540px;line-height:1.7}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:24px;margin-bottom:20px}
+.card-gold{background:var(--bg2);border:1px solid var(--goldBorder);border-radius:8px;padding:24px;margin-bottom:20px}
+.card-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.22em;text-transform:uppercase;margin-bottom:16px}
+/* FORM */
+.field{margin-bottom:14px}
+.field-label{display:block;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+input[type=text],input[type=number],input[type=password],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;font-weight:300;padding:10px 12px;border-radius:4px;outline:none}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--goldBorder2)}
+textarea{resize:vertical}
+select{cursor:pointer}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+/* BUTTONS */
+.btn-primary{background:var(--gold);color:var(--bg);border:none;padding:11px 22px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;border-radius:4px;cursor:pointer;font-weight:500}
+.btn-primary:hover{background:var(--gold2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--gold);border:1px solid var(--goldBorder2);padding:10px 18px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;cursor:pointer}
+.btn-secondary:hover{background:var(--goldDim)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);padding:9px 16px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;cursor:pointer}
+.btn-ghost:hover{color:var(--white);border-color:var(--border3)}
+/* STATUS */
+.status-bar{border-radius:4px;padding:10px 14px;font-size:12px;margin-top:10px;display:flex;align-items:center;gap:8px}
+.status-ok{background:var(--greenDim);border:1px solid rgba(74,171,122,.25);color:var(--green)}
+.status-err{background:var(--redDim);border:1px solid rgba(212,79,79,.25);color:var(--red)}
+.status-info{background:var(--goldDim);border:1px solid var(--goldBorder);color:var(--gold2)}
+/* PROG */
+.prog-bar{height:3px;background:var(--border2);border-radius:2px;margin-top:8px}
+.prog-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .3s}
+/* SCENE CARDS */
+.scene-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.scene-card{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:16px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:start}
+.scene-card.generated{border-color:var(--goldBorder)}
+.scene-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:.1em;white-space:nowrap;margin-top:2px}
+.scene-body{display:flex;flex-direction:column;gap:8px}
+.scene-narration{font-size:12px;color:var(--white2);line-height:1.6;background:var(--bg4);border:1px solid var(--border);border-radius:3px;padding:8px 10px}
+.scene-visual{font-size:11px;color:var(--muted);line-height:1.5;font-style:italic}
+.scene-img-wrap{width:160px;min-width:160px;position:relative}
+.scene-img-wrap img{width:100%;border-radius:4px;display:block}
+.scene-img-placeholder{width:160px;height:90px;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.1em}
+.scene-img-placeholder.loading{border-color:var(--goldBorder);color:var(--gold)}
+.scene-img-placeholder.error{border-color:rgba(212,79,79,.3);color:var(--red)}
+.scene-actions{display:flex;gap:6px;margin-top:6px}
+/* TEXT OVERLAY CANVAS */
+.canvas-wrap{position:relative;display:inline-block}
+/* STAT STRIP */
+.stat-strip{display:flex;gap:0;border:1px solid var(--border2);border-radius:6px;overflow:hidden;margin-bottom:20px}
+.stat-item{flex:1;padding:12px;text-align:center;border-right:1px solid var(--border2)}
+.stat-item:last-child{border-right:none}
+.stat-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase}
+.stat-val{font-family:'DM Mono',monospace;font-size:18px;color:var(--white);margin-top:3px}
+/* PLATFORM CHIPS */
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.chip.active{background:var(--goldDim);border-color:var(--goldBorder2);color:var(--gold)}
+/* SPINNER */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+/* EXPORT */
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
+.export-thumb{position:relative;border-radius:6px;overflow:hidden;border:1px solid var(--border2)}
+.export-thumb img{width:100%;display:block}
+.export-thumb canvas{width:100%;display:block}
+.export-lbl{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="logo">Manga<span>Hive</span></div>
+    <div class="logo-tag">Video Suite</div>
+  </div>
+  <div class="header-right">
+    <select class="provider-sel" id="providerSelect" onchange="updateProviderFields()">
+      <option value="runware">Runware</option>
+      <option value="huggingface">HuggingFace</option>
+      <option value="openai">OpenAI DALL-E 3</option>
+      <option value="replicate">Replicate</option>
+      <option value="stability">Stability AI</option>
+    </select>
+    <div class="token-wrap">
+      <span class="token-label" id="tokenLabel">API Key</span>
+      <input class="token-input" type="password" id="apiKeyInput" placeholder="paste key here..." oninput="onKeyInput()">
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+    <a href="mangahive-suite.html" class="nav-link">← Manga Suite</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-head">
+    <div class="page-eyebrow">AI Video Production</div>
+    <div class="page-title">Faceless Video<br>Storyboard Generator</div>
+    <div class="page-desc">Write a topic → AI breaks it into scenes → generate an image per scene → add captions → download your visual sequence.</div>
+  </div>
+
+  <!-- STEP 1: SETUP -->
+  <div class="card-gold">
+    <div class="card-title">Step 1 — Video Setup</div>
+    <div class="field">
+      <label class="field-label">Platform</label>
+      <div class="chip-row">
+        <div class="chip active" id="chip-youtube" onclick="setPlatform('youtube')">YouTube (16:9)</div>
+        <div class="chip" id="chip-shorts" onclick="setPlatform('shorts')">Shorts / Reels (9:16)</div>
+        <div class="chip" id="chip-square" onclick="setPlatform('square')">Square (1:1)</div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label class="field-label">Niche / Category</label>
+        <select id="niche">
+          <option value="history">History & Facts</option>
+          <option value="mystery">Mystery & Dark History</option>
+          <option value="science">Science & Technology</option>
+          <option value="motivation">Motivation & Self-Help</option>
+          <option value="finance">Finance & Money</option>
+          <option value="horror">Horror & Creepy Stories</option>
+          <option value="travel">Travel & Culture</option>
+          <option value="philosophy">Philosophy & Deep Thoughts</option>
+          <option value="custom">Custom (describe below)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Video Length</label>
+        <select id="videoLength">
+          <option value="5">~5 min (10 scenes)</option>
+          <option value="8" selected>~8 min (15 scenes)</option>
+          <option value="12">~12 min (20 scenes)</option>
+          <option value="short">60s Short (6 scenes)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Video Topic</label>
+      <input type="text" id="videoTopic" placeholder="e.g. The Mysterious Disappearance of the Roanoke Colony">
+    </div>
+    <div class="field">
+      <label class="field-label">Visual Style</label>
+      <select id="visualStyle">
+        <option value="cinematic dark realistic, dramatic lighting, 8k photography">Cinematic Dark Realism</option>
+        <option value="digital painting, detailed illustration, dramatic composition">Digital Painting</option>
+        <option value="anime style, detailed, dramatic lighting, vibrant colors">Anime / Illustrated</option>
+        <option value="old photograph, vintage sepia, historical documentary style">Vintage / Historical</option>
+        <option value="minimalist flat design, clean bold colors, modern infographic">Minimalist / Modern</option>
+        <option value="watercolor painting, soft textures, artistic">Watercolor Art</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Narration Tone</label>
+      <select id="narrationTone">
+        <option value="mysterious and suspenseful">Mysterious & Suspenseful</option>
+        <option value="educational and engaging">Educational & Engaging</option>
+        <option value="dramatic and intense">Dramatic & Intense</option>
+        <option value="calm and reflective">Calm & Reflective</option>
+        <option value="shocking and gripping">Shocking & Gripping</option>
+        <option value="motivational and uplifting">Motivational & Uplifting</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="generateScript()" id="btnGenScript">✦ AI Write Script & Scene Breakdown →</button>
+    <div id="scriptStatus"></div>
+  </div>
+
+  <!-- STEP 2: SCENES -->
+  <div id="scenesSection" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div class="card-title" style="margin-bottom:0">Step 2 — Scene Breakdown</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" onclick="generateScript()" id="btnRewrite">↺ Rewrite</button>
+          <button class="btn-primary" onclick="generateAllImages()" id="btnGenImages">Generate All Scene Images →</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Edit any scene narration or visual description before generating. Each scene = one image.</div>
+
+      <div class="stat-strip">
+        <div class="stat-item"><div class="stat-lbl">Scenes</div><div class="stat-val" id="stTotal">0</div></div>
+        <div class="stat-item"><div class="stat-lbl">Generated</div><div class="stat-val" id="stDone" style="color:var(--green)">0</div></div>
+        <div class="stat-item"><div class="stat-lbl">Failed</div><div class="stat-val" id="stFail" style="color:var(--red)">0</div></div>
+        <div class="stat-item"><div class="stat-lbl">Queued</div><div class="stat-val" id="stQueue" style="color:var(--muted)">0</div></div>
+      </div>
+
+      <div id="progWrap" style="display:none;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--gold)">
+          <span id="progLabel">Generating...</span><span id="progFrac">0 / 0</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="scene-list" id="sceneList"></div>
+    </div>
+
+    <!-- STEP 3: EXPORT -->
+    <div id="exportSection" style="display:none">
+      <div class="card">
+        <div class="card-title">Step 3 — Caption Style & Export</div>
+        <div class="g3">
+          <div class="field">
+            <label class="field-label">Caption Position</label>
+            <select id="captionPos">
+              <option value="bottom">Bottom (subtitle style)</option>
+              <option value="top">Top</option>
+              <option value="none">No captions</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Font Size</label>
+            <select id="captionSize">
+              <option value="18">Small (18px)</option>
+              <option value="24" selected>Medium (24px)</option>
+              <option value="30">Large (30px)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Caption Style</label>
+            <select id="captionStyle">
+              <option value="subtitle">Dark bar (subtitle)</option>
+              <option value="outline">White + outline</option>
+              <option value="box">White box</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-primary" onclick="renderExport()">Preview with Captions →</button>
+          <button class="btn-secondary" onclick="downloadAll()">Download All Scenes</button>
+        </div>
+        <div id="exportStatus"></div>
+        <div class="export-grid" id="exportGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let scenes = [];         // [{narration, visual, duration, blob, canvas}]
+let platform = 'youtube';
+let activeProvider = 'runware';
+let genRunning = false;
+
+const DIMS = {
+  youtube: { w: 768, h: 432 },
+  shorts:  { w: 432, h: 768 },
+  square:  { w: 512, h: 512 }
+};
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('activeProvider') || 'runware';
+  activeProvider = saved;
+  document.getElementById('providerSelect').value = saved;
+  updateProviderFields();
+});
+
+function setPlatform(p) {
+  platform = p;
+  ['youtube','shorts','square'].forEach(x => {
+    document.getElementById('chip-' + x).classList.toggle('active', x === p);
+  });
+}
+
+function updateProviderFields() {
+  activeProvider = document.getElementById('providerSelect').value;
+  localStorage.setItem('activeProvider', activeProvider);
+  const labels = {
+    runware: 'Runware Key', huggingface: 'HF Token',
+    openai: 'OpenAI Key', replicate: 'Replicate Token', stability: 'Stability Key'
+  };
+  document.getElementById('tokenLabel').textContent = labels[activeProvider] || 'API Key';
+  const saved = localStorage.getItem('api_key_' + activeProvider) || '';
+  document.getElementById('apiKeyInput').value = saved;
+  onKeyInput();
+}
+
+function onKeyInput() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('api_key_' + activeProvider, v);
+  document.getElementById('statusDot').className = 'status-dot' + (v ? ' ok' : '');
+}
+
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<div class="status-bar status-${type}">${type === 'info' ? '<div class="spinner"></div>' : ''}${msg}</div>`;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════
+// STEP 1: AI SCRIPT GENERATION
+// ══════════════════════════════════════
+async function generateScript() {
+  const topic = document.getElementById('videoTopic').value.trim();
+  if (!topic) { showStatus('scriptStatus', 'Enter a video topic first', 'err'); return; }
+
+  const niche = document.getElementById('niche').value;
+  const tone = document.getElementById('narrationTone').value;
+  const style = document.getElementById('visualStyle').value;
+  const lengthOpt = document.getElementById('videoLength').value;
+  const sceneCount = lengthOpt === 'short' ? 6 : lengthOpt === '5' ? 10 : lengthOpt === '8' ? 15 : 20;
+
+  const btn = document.getElementById('btnGenScript');
+  btn.disabled = true;
+  showStatus('scriptStatus', 'Claude AI is writing your script...', 'info');
+
+  const apiKey = localStorage.getItem('api_key_runware') ||
+                 localStorage.getItem('api_key_openai') ||
+                 localStorage.getItem('api_key_huggingface') || '';
+
+  const systemPrompt = `You are an expert faceless YouTube video scriptwriter. You write compelling, engaging scripts optimized for AI image generation. Return ONLY valid JSON, no markdown, no explanation.`;
+
+  const userPrompt = `Write a complete faceless video script for:
+
+Topic: "${topic}"
+Niche: ${niche}
+Tone: ${tone}
+Number of scenes: ${sceneCount}
+Visual style for images: ${style}
+
+Return a JSON object with this exact structure:
+{
+  "title": "video title",
+  "hook": "opening hook sentence",
+  "scenes": [
+    {
+      "id": 1,
+      "duration": 25,
+      "narration": "The exact narration text spoken over this scene (2-4 sentences, engaging ${tone} tone)",
+      "visual": "Detailed image generation prompt for this scene. Style: ${style}. Include: specific scene description, mood, lighting, composition. No text in image."
+    }
+  ]
+}
+
+Rules:
+- narration must be engaging, ${tone}, optimized for voiceover
+- visual prompts must be detailed, specific, and match the scene content
+- each scene duration in seconds (varies 15-40s based on content)
+- make scenes flow naturally telling the story of "${topic}"
+- NO character names or faces for faceless content — use environments, objects, symbols, atmospheric shots`;
+
+  try {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!res.ok) throw new Error('Claude API error — check your /api/claude proxy');
+    const data = await res.json();
+    const raw = data?.content?.[0]?.text || '';
+    const jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const parsed = JSON.parse(jsonStr);
+
+    scenes = parsed.scenes.map(s => ({ ...s, blob: null, canvas: null }));
+    renderScenes();
+    document.getElementById('scenesSection').style.display = 'block';
+    document.getElementById('stTotal').textContent = scenes.length;
+    document.getElementById('stQueue').textContent = scenes.length;
+    showStatus('scriptStatus', `✓ ${scenes.length} scenes generated for "${parsed.title}"`, 'ok');
+  } catch(e) {
+    showStatus('scriptStatus', 'Script error: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════
+// RENDER SCENES
+// ══════════════════════════════════════
+function renderScenes() {
+  const list = document.getElementById('sceneList');
+  list.innerHTML = '';
+  scenes.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'scene-card' + (s.blob ? ' generated' : '');
+    d.id = 'scene-card-' + i;
+    d.innerHTML = `
+      <div class="scene-num">S${String(s.id).padStart(2,'0')}<br><span style="color:var(--muted);font-size:9px">${s.duration}s</span></div>
+      <div class="scene-body">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px">Narration</div>
+        <textarea id="narr-${i}" rows="3" style="font-size:12px;line-height:1.6">${s.narration}</textarea>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:8px;margin-bottom:4px">Visual Prompt</div>
+        <textarea id="vis-${i}" rows="2" style="font-size:11px;color:var(--muted);font-style:italic">${s.visual}</textarea>
+        <div class="scene-actions">
+          <button class="btn-ghost" style="font-size:8px;padding:4px 10px" onclick="regenScene(${i})">↺ Regen</button>
+        </div>
+      </div>
+      <div class="scene-img-wrap" id="img-wrap-${i}">
+        ${s.blob
+          ? `<img id="scene-img-${i}" src="${URL.createObjectURL(s.blob)}">`
+          : `<div class="scene-img-placeholder" id="scene-img-${i}">NOT GENERATED</div>`}
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+function updateSceneImg(i, blob) {
+  const wrap = document.getElementById('img-wrap-' + i);
+  if (!wrap) return;
+  if (blob) {
+    wrap.innerHTML = `<img id="scene-img-${i}" src="${URL.createObjectURL(blob)}" style="width:100%;border-radius:4px">`;
+    document.getElementById('scene-card-' + i).classList.add('generated');
+  } else {
+    wrap.innerHTML = `<div class="scene-img-placeholder error" id="scene-img-${i}">FAILED</div>`;
+  }
+}
+
+function setSceneLoading(i) {
+  const wrap = document.getElementById('img-wrap-' + i);
+  if (wrap) wrap.innerHTML = `<div class="scene-img-placeholder loading" id="scene-img-${i}"><div class="spinner"></div></div>`;
+}
+
+// ══════════════════════════════════════
+// STEP 2: GENERATE IMAGES
+// ══════════════════════════════════════
+async function generateAllImages() {
+  if (genRunning) return;
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { showStatus('scriptStatus', 'Enter your API key in the header', 'err'); return; }
+
+  genRunning = true;
+  document.getElementById('btnGenImages').disabled = true;
+  document.getElementById('progWrap').style.display = 'block';
+
+  const { w, h } = DIMS[platform];
+  const isHF = activeProvider === 'huggingface';
+  let done = 0, fail = 0;
+
+  document.getElementById('stDone').textContent = 0;
+  document.getElementById('stFail').textContent = 0;
+
+  for (let i = 0; i < scenes.length; i++) {
+    // Sync edits from textareas
+    scenes[i].narration = document.getElementById('narr-' + i)?.value || scenes[i].narration;
+    scenes[i].visual    = document.getElementById('vis-' + i)?.value  || scenes[i].visual;
+
+    setSceneLoading(i);
+    document.getElementById('progLabel').textContent = `Generating scene ${i + 1} of ${scenes.length}...`;
+    document.getElementById('progFrac').textContent  = `${done + fail} / ${scenes.length}`;
+    document.getElementById('progFill').style.width  = Math.round(((done + fail) / scenes.length) * 100) + '%';
+
+    try {
+      const blob = await generateImage(apiKey, scenes[i].visual, w, h);
+      scenes[i].blob = blob;
+      updateSceneImg(i, blob);
+      done++;
+      document.getElementById('stDone').textContent = done;
+    } catch(e) {
+      scenes[i].blob = null;
+      updateSceneImg(i, null);
+      fail++;
+      document.getElementById('stFail').textContent = fail;
+    }
+    document.getElementById('stQueue').textContent = Math.max(0, scenes.length - done - fail);
+
+    if (i < scenes.length - 1) await sleep(isHF ? 6000 : 1500);
+  }
+
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('progLabel').textContent = `Done — ${done} generated, ${fail} failed`;
+  document.getElementById('progFrac').textContent  = `${done} / ${scenes.length}`;
+
+  if (done > 0) document.getElementById('exportSection').style.display = 'block';
+  genRunning = false;
+  document.getElementById('btnGenImages').disabled = false;
+}
+
+async function regenScene(i) {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { alert('Enter API key first'); return; }
+  scenes[i].visual    = document.getElementById('vis-' + i)?.value  || scenes[i].visual;
+  scenes[i].narration = document.getElementById('narr-' + i)?.value || scenes[i].narration;
+  setSceneLoading(i);
+  const { w, h } = DIMS[platform];
+  try {
+    const blob = await generateImage(apiKey, scenes[i].visual, w, h);
+    scenes[i].blob = blob;
+    updateSceneImg(i, blob);
+  } catch(e) {
+    updateSceneImg(i, null);
+  }
+}
+
+async function generateImage(apiKey, prompt, w, h) {
+  switch(activeProvider) {
+    case 'runware':    return callRunware(apiKey, '', prompt, '', w, h, null);
+    case 'huggingface':return callHF_Direct(apiKey, prompt, '', w, h);
+    case 'openai':     return callOpenAI(apiKey, prompt, '', w, h);
+    case 'replicate':  return callReplicate(apiKey, prompt, '', w, h);
+    case 'stability':  return callStability(apiKey, prompt, '', w, h);
+    default:           return callRunware(apiKey, '', prompt, '', w, h, null);
+  }
+}
+
+// ══════════════════════════════════════
+// STEP 3: CAPTION & EXPORT
+// ══════════════════════════════════════
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' ');
+  let line = '', lines = [];
+  words.forEach(w => {
+    const t = line ? line + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW) { lines.push(line); line = w; }
+    else line = t;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function renderExport() {
+  const pos   = document.getElementById('captionPos').value;
+  const size  = parseInt(document.getElementById('captionSize').value);
+  const style = document.getElementById('captionStyle').value;
+  const grid  = document.getElementById('exportGrid');
+  grid.innerHTML = '';
+
+  scenes.forEach((s, i) => {
+    if (!s.blob) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'export-thumb';
+
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      if (pos !== 'none') {
+        ctx.font = `bold ${size}px Arial`;
+        const narration = s.narration;
+        const maxW = canvas.width * 0.88;
+        const lines = wrapText(ctx, narration, maxW);
+        const lh = size + 6;
+        const totalH = lines.length * lh + 24;
+        const y = pos === 'bottom' ? canvas.height - totalH - 16 : 16;
+
+        if (style === 'subtitle') {
+          ctx.fillStyle = 'rgba(0,0,0,0.72)';
+          ctx.fillRect(0, y - 8, canvas.width, totalH + 8);
+          ctx.fillStyle = '#ffffff';
+        } else if (style === 'outline') {
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 3;
+        } else {
+          const bw = maxW + 32;
+          const bx = (canvas.width - bw) / 2;
+          ctx.fillStyle = 'rgba(255,255,255,0.92)';
+          ctx.fillRect(bx, y - 8, bw, totalH + 8);
+          ctx.fillStyle = '#111111';
+        }
+
+        ctx.font = `bold ${size}px Arial`;
+        ctx.textBaseline = 'top';
+        lines.forEach((l, li) => {
+          const x = (canvas.width - ctx.measureText(l).width) / 2;
+          if (style === 'outline') { ctx.strokeText(l, x, y + li * lh + 4); }
+          ctx.fillText(l, x, y + li * lh + 4);
+        });
+      }
+
+      scenes[i].canvas = canvas;
+      wrap.appendChild(canvas);
+      const lbl = document.createElement('div');
+      lbl.className = 'export-lbl';
+      lbl.textContent = `Scene ${s.id} · ${s.duration}s`;
+      wrap.appendChild(lbl);
+    };
+    img.src = URL.createObjectURL(s.blob);
+    grid.appendChild(wrap);
+  });
+
+  document.getElementById('exportStatus').innerHTML = '<div class="status-bar status-ok" style="margin-top:12px">✓ Preview ready — click Download All to save.</div>';
+}
+
+async function downloadAll() {
+  const hasCaptions = document.getElementById('captionPos').value !== 'none';
+  let count = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    if (!scenes[i].blob) continue;
+    const a = document.createElement('a');
+    if (hasCaptions && scenes[i].canvas) {
+      a.href = scenes[i].canvas.toDataURL('image/png');
+    } else {
+      a.href = URL.createObjectURL(scenes[i].blob);
+    }
+    a.download = `scene_${String(scenes[i].id).padStart(2,'0')}.png`;
+    a.click();
+    count++;
+    await sleep(200);
+  }
+  document.getElementById('exportStatus').innerHTML = `<div class="status-bar status-ok">✓ ${count} scenes downloaded.</div>`;
+}
+
+// ══════════════════════════════════════
+// IMAGE GENERATION PROVIDERS (same as manga suite)
+// ══════════════════════════════════════
+async function callRunware(apiKey, model, prompt, neg, w, h, seed) {
+  const taskUUID = crypto.randomUUID();
+  const useSeed = seed || Math.floor(Math.random() * 9999999);
+  const payload = [{
+    taskType:'imageInference', taskUUID,
+    positivePrompt: prompt.substring(0,2000),
+    negativePrompt: neg || 'blurry, low quality, watermark, text, logo, signature',
+    model: model || 'civitai:36520@76907',
+    width:w, height:h, numberResults:1,
+    outputType:'URL', outputFormat:'PNG', steps:20, CFGScale:7, seed:useSeed, checkNSFW:false
+  }];
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const res = await fetch('https://api.runware.ai/v1', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 401) throw new Error('Invalid Runware API key');
+      if (res.status === 402) throw new Error('Runware credits exhausted');
+      if (res.status === 429) { await sleep(5000); retries--; continue; }
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.errors?.[0]?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const result = data?.data?.find(d => d.taskUUID === taskUUID);
+      if (!result?.imageURL) throw new Error('No image URL returned');
+      const imgRes = await fetch(result.imageURL);
+      if (!imgRes.ok) throw new Error('Failed to fetch image');
+      const blob = await imgRes.blob();
+      if (blob.size > 1000) return blob;
+      throw new Error('Empty image returned');
+    } catch(e) {
+      retries--;
+      if (retries === 0) throw e;
+      if (e.message.includes('API key') || e.message.includes('credits')) throw e;
+      await sleep(3000);
+    }
+  }
+  throw new Error('Max retries reached');
+}
+
+async function callHF_Direct(apiKey, prompt, neg, w, h) {
+  const validW = Math.round(w / 8) * 8;
+  const validH = Math.round(h / 8) * 8;
+  const models = [
+    { id:'stabilityai/stable-diffusion-xl-base-1.0', body:{ inputs:prompt.substring(0,1000), parameters:{ negative_prompt:neg||'blurry,watermark', height:validH, width:validW, num_inference_steps:20, guidance_scale:7.0 }}},
+    { id:'stabilityai/stable-diffusion-2-1',         body:{ inputs:prompt.substring(0,1000), parameters:{ negative_prompt:neg||'blurry,watermark', height:Math.min(validH,768), width:Math.min(validW,768), num_inference_steps:20, guidance_scale:7.0 }}},
+    { id:'black-forest-labs/FLUX.1-schnell',          body:{ inputs:prompt.substring(0,1000), parameters:{ num_inference_steps:4 }}},
+    { id:'Lykon/dreamshaper-7',                       body:{ inputs:prompt.substring(0,1000), parameters:{ negative_prompt:neg||'blurry,watermark', num_inference_steps:20, guidance_scale:7.0 }}}
+  ];
+  const errors = [];
+  for (const { id, body } of models) {
+    let retries = 2;
+    while (retries > 0) {
+      try {
+        const res = await fetch('/api/huggingface', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:apiKey, model:id, body }) });
+        if (res.status === 401) throw new Error('Invalid HF token');
+        if (res.status === 503) { await sleep(10000); retries--; continue; }
+        if (res.status === 429) { await sleep(12000); retries--; continue; }
+        if (!res.ok) { const t = await res.json().catch(()=>({})); throw new Error(`HTTP ${res.status}: ${t.error||''}`); }
+        const blob = await res.blob();
+        if (blob.size > 5000) return blob;
+        throw new Error('Too small');
+      } catch(e) {
+        if (e.message.includes('Invalid HF')) throw e;
+        retries--; if (retries > 0) await sleep(3000); else errors.push(`${id}: ${e.message}`);
+      }
+    }
+  }
+  throw new Error('All HF models failed: ' + errors.join(' | '));
+}
+
+async function callReplicate(apiKey, prompt, neg, w, h) {
+  const body = { model:'black-forest-labs/flux-schnell', input:{ prompt:prompt.substring(0,1000), num_inference_steps:4, width:w, height:h }};
+  try {
+    const createRes = await fetch('/api/replicate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'create', token:apiKey, body }) });
+    if (!createRes.ok) { const e = await createRes.json().catch(()=>({})); throw new Error(`HTTP ${createRes.status}: ${e.error||''}`); }
+    const prediction = await createRes.json();
+    for (let i = 0; i < 120; i++) {
+      await sleep(2000);
+      const pollRes = await fetch('/api/replicate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'poll', token:apiKey, predictionId:prediction.id }) });
+      const current = await pollRes.json();
+      if (current.status === 'succeeded') {
+        const url = Array.isArray(current.output) ? current.output[0] : current.output;
+        const imgRes = await fetch(url);
+        if (!imgRes.ok) throw new Error('Failed to fetch image');
+        return await imgRes.blob();
+      }
+      if (current.status === 'failed') throw new Error(current.error || 'Replicate failed');
+    }
+    throw new Error('Timeout');
+  } catch(e) { throw new Error('Replicate: ' + e.message); }
+}
+
+async function callStability(apiKey, prompt, neg, w, h) {
+  const res = await fetch('https://api.stability.ai/v2beta/stable-image/generate/core', {
+    method:'POST',
+    headers:{ 'Authorization':`Bearer ${apiKey}`, 'Accept':'image/*' },
+    body: (() => { const fd = new FormData(); fd.append('prompt', prompt.substring(0,10000)); fd.append('output_format','png'); fd.append('aspect_ratio', w > h ? '16:9' : h > w ? '9:16' : '1:1'); return fd; })()
+  });
+  if (res.status === 401) throw new Error('Invalid Stability key');
+  if (res.status === 402) throw new Error('Stability credits exhausted');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.blob();
+}
+
+async function callOpenAI(apiKey, prompt, neg, w, h) {
+  const size = w > h ? '1792x1024' : h > w ? '1024x1792' : '1024x1024';
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method:'POST',
+    headers:{ 'Authorization':`Bearer ${apiKey}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ model:'dall-e-3', prompt:prompt.substring(0,4000), n:1, size, quality:'standard', response_format:'url' })
+  });
+  if (res.status === 401) throw new Error('Invalid OpenAI key');
+  if (res.status === 429) throw new Error('OpenAI rate limited');
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+  const data = await res.json();
+  const imgUrl = data?.data?.[0]?.url;
+  if (!imgUrl) throw new Error('No URL returned');
+  const imgRes = await fetch(imgUrl);
+  return await imgRes.blob();
+}
+</script>
+</body>
+</html>
