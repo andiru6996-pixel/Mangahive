@@ -1565,7 +1565,8 @@ async function startGeneration() {
   const cfg = parseFloat(document.getElementById('cfg').value);
   const neg = document.getElementById('negPrompt').value;
   // PARALLEL BATCH SIZE — 5 at once (Runware handles parallel requests well)
-  const BATCH = 5;
+  const isHF = activeProvider === 'huggingface';
+  const BATCH = isHF ? 1 : 5; // HF rate-limits hard — go one at a time
 
   document.getElementById('btnGenerate').disabled = true;
   document.getElementById('btnPause').style.display = 'inline-block';
@@ -1606,8 +1607,9 @@ async function startGeneration() {
 
     await Promise.all(batchPromises);
 
-    // Small gap between batches to avoid rate limiting
-    if (i + BATCH < prompts.length && !shouldStop) await sleep(3000);
+    // Gap between batches — HF needs longer to avoid rate limiting
+    const batchDelay = isHF ? parseInt(document.getElementById('delay').value) * 1000 : 3000;
+    if (i + BATCH < prompts.length && !shouldStop) await sleep(batchDelay);
   }
 
   isRunning = false;
