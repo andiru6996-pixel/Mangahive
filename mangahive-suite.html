@@ -1003,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div class="field">
           <label class="field-label">Service Role Key <span style="color:var(--muted);font-weight:300">(for uploads — Supabase → Settings → API)</span></label>
-          <input type="password" id="sbServiceKey" placeholder="eyJ..." oninput="localStorage.setItem('sb_service_key',this.value)" value="">
+          <input type="password" id="sbServiceKey" placeholder="eyJ..." oninput="localStorage.setItem('sb_service_key',this.value)">
         </div>
         <button class="btn-secondary" onclick="connectSupabase()">Connect →</button>
         <div id="sbConnStatus"></div>
@@ -1180,6 +1180,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('providerSelect').value = defaultProvider;
     updateProviderFields();
     
+    const savedSvcKey = localStorage.getItem('sb_service_key');
+    if (savedSvcKey) document.getElementById('sbServiceKey').value = savedSvcKey;
+
     buildStoryGrid();
   } catch(e) {
     console.error('buildStoryGrid error:', e);
@@ -2182,8 +2185,10 @@ async function createChapter() {
     const fill = document.getElementById('storageProgressFill');
     wrap.style.display = 'block';
     const supabaseUrl = document.getElementById('sbUrl').value.trim();
-    const serviceKey = document.getElementById('sbServiceKey').value.trim();
-    if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key above to upload panels', 'err'); return; }
+    let serviceKey = document.getElementById('sbServiceKey').value.trim();
+    if (!serviceKey) serviceKey = localStorage.getItem('sb_service_key') || '';
+    if (serviceKey) document.getElementById('sbServiceKey').value = serviceKey;
+    if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key in the connection panel above', 'err'); document.getElementById('sbServiceKey').focus(); return; }
     // Use a separate client with service role key — bypasses RLS for storage
     const adminClient = supabase.createClient(supabaseUrl, serviceKey);
     const folder = `chapters/${storyId}/ep${epNum}`;
