@@ -990,6 +990,10 @@ document.addEventListener('DOMContentLoaded', function() {
           <label class="field-label">Anon Key</label>
           <input type="text" id="sbKey" value="sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9">
         </div>
+        <div class="field">
+          <label class="field-label">Service Role Key <span style="color:var(--muted);font-weight:300">(for uploads — Supabase → Settings → API)</span></label>
+          <input type="password" id="sbServiceKey" placeholder="eyJ..." oninput="localStorage.setItem('sb_service_key',this.value)" value="">
+        </div>
         <button class="btn-secondary" onclick="connectSupabase()">Connect →</button>
         <div id="sbConnStatus"></div>
       </div>
@@ -2012,6 +2016,8 @@ async function connectSupabase() {
 async function autoConnectSupabase() {
   try {
     if (typeof supabase === 'undefined') return;
+    const saved = localStorage.getItem('sb_service_key');
+    if (saved) document.getElementById('sbServiceKey').value = saved;
     const url = document.getElementById('sbUrl').value.trim();
     const key = document.getElementById('sbKey').value.trim();
     if (url && key) {
@@ -2097,6 +2103,8 @@ async function createChapter() {
     const fill = document.getElementById('storageProgressFill');
     wrap.style.display = 'block';
     const supabaseUrl = document.getElementById('sbUrl').value.trim();
+    const serviceKey = document.getElementById('sbServiceKey').value.trim();
+    if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key above to upload panels', 'err'); return; }
     const folder = `chapters/${storyId}/ep${epNum}`;
     for (let i = 0; i < processedCanvases.length; i++) {
       text.textContent = `Uploading panel ${i + 1} of ${processedCanvases.length}...`;
@@ -2112,7 +2120,7 @@ async function createChapter() {
       const upRes = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supabaseUrl, path, dataBase64, contentType: 'image/png' })
+        body: JSON.stringify({ supabaseUrl, serviceKey, path, dataBase64, contentType: 'image/png' })
       });
       if (!upRes.ok) {
         const err = await upRes.json().catch(() => ({}));

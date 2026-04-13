@@ -5,10 +5,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { supabaseUrl, path, dataBase64, contentType } = req.body;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { supabaseUrl, serviceKey, path, dataBase64, contentType } = req.body;
 
-  if (!serviceKey) return res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY not set in environment' });
+  if (!serviceKey) return res.status(400).json({ error: 'Service role key is required — paste it in the Supabase Connection panel' });
   if (!supabaseUrl || !path || !dataBase64) return res.status(400).json({ error: 'Missing supabaseUrl, path, or dataBase64' });
 
   try {
