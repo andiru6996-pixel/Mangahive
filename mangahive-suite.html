@@ -2096,16 +2096,30 @@ async function createChapter() {
     const text = document.getElementById('storageProgressText');
     const fill = document.getElementById('storageProgressFill');
     wrap.style.display = 'block';
+    const supabaseUrl = document.getElementById('sbUrl').value.trim();
     const folder = `chapters/${storyId}/ep${epNum}`;
     for (let i = 0; i < processedCanvases.length; i++) {
       text.textContent = `Uploading panel ${i + 1} of ${processedCanvases.length}...`;
       fill.style.width = Math.round((i / processedCanvases.length) * 100) + '%';
       const blob = await new Promise(res => processedCanvases[i].toBlob(res, 'image/png'));
+      const dataBase64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
       const path = `${folder}/p${i + 1}.png`;
-      const { error: upErr } = await sbClient.storage.from('manga-images').upload(path, blob, { contentType: 'image/png', upsert: true });
-      if (upErr) { showStatus('uploadStatus', `Upload error on p${i+1}: ${upErr.message}`, 'err'); return; }
-      const { data: pub } = sbClient.storage.from('manga-images').getPublicUrl(path);
-      pages.push(pub.publicUrl);
+      const upRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supabaseUrl, path, dataBase64, contentType: 'image/png' })
+      });
+      if (!upRes.ok) {
+        const err = await upRes.json().catch(() => ({}));
+        showStatus('uploadStatus', `Upload error on p${i+1}: ${err.error || upRes.status}`, 'err'); return;
+      }
+      const { publicUrl } = await upRes.json();
+      pages.push(publicUrl);
     }
     fill.style.width = '100%';
     text.textContent = `${pages.length} panels uploaded.`;
