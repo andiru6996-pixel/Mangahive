@@ -1027,23 +1027,25 @@ document.addEventListener('DOMContentLoaded', function() {
     <div>
       <div class="card" style="margin-bottom:20px">
         <div class="card-title">Panel Images</div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px">
-          Option A — use processed panels from Stage 4 (auto-filled)<br>
-          Option B — upload fresh images to storage below<br>
-          Option C — paste URLs manually
+        <div id="s5PanelStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px">
+          No panels from Stage 4 — use manual upload below.
         </div>
-        <button class="btn-secondary" onclick="document.getElementById('freshUpload').click()" style="margin-bottom:12px;width:100%">
-          Upload Images to Supabase Storage →
-        </button>
-        <input type="file" id="freshUpload" multiple accept="image/*" style="display:none" onchange="uploadToStorage(event)">
+        <div class="panel-grid-diag" id="s5PanelPreview" style="margin-bottom:14px"></div>
         <div id="storageProgress" style="display:none;margin-bottom:12px">
           <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);margin-bottom:6px" id="storageProgressText"></div>
           <div class="prog-bar"><div class="prog-fill" id="storageProgressFill"></div></div>
         </div>
-        <div class="field">
-          <label class="field-label">Image URLs (one per line)</label>
-          <textarea id="imageUrls" rows="10" placeholder="https://uhjptxhhaipckshgytul.supabase.co/storage/v1/object/public/manga-images/p1.png&#10;https://.../p2.png&#10;..."></textarea>
-        </div>
+        <details style="margin-top:4px">
+          <summary style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;cursor:pointer;margin-bottom:10px">Manual override (upload files or paste URLs)</summary>
+          <button class="btn-secondary" onclick="document.getElementById('freshUpload').click()" style="margin-bottom:10px;width:100%">
+            Upload Images to Supabase Storage →
+          </button>
+          <input type="file" id="freshUpload" multiple accept="image/*" style="display:none" onchange="uploadToStorage(event)">
+          <div class="field">
+            <label class="field-label">Image URLs (one per line)</label>
+            <textarea id="imageUrls" rows="6" placeholder="https://...supabase.co/.../p1.png&#10;https://...supabase.co/.../p2.png"></textarea>
+          </div>
+        </details>
       </div>
 
       <button class="btn-primary" style="width:100%" onclick="createChapter()">Create Chapter in Database →</button>
@@ -2024,10 +2026,26 @@ async function autoConnectSupabase() {
 }
 
 function autoFillUploadUrls() {
-  // Placeholder — actual upload happens via uploadToStorage
-  // Just show a note that processed panels are ready
+  const statusEl = document.getElementById('s5PanelStatus');
+  const previewEl = document.getElementById('s5PanelPreview');
+  previewEl.innerHTML = '';
   if (processedCanvases.length > 0) {
-    document.getElementById('imageUrls').placeholder = `${processedCanvases.length} processed panels ready — click "Upload Images to Supabase Storage" to upload them and auto-fill URLs.`;
+    statusEl.innerHTML = `<span style="color:var(--green)">✓ ${processedCanvases.length} panels ready from Stage 4 — will upload automatically.</span>`;
+    processedCanvases.forEach((c, i) => {
+      const img = document.createElement('img');
+      img.src = c.toDataURL('image/png');
+      img.style.cssText = 'width:100%;border-radius:4px;border:1px solid var(--border2)';
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative';
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);color:var(--gold);font-family:"DM Mono",monospace;font-size:9px;padding:2px 5px;border-radius:3px';
+      lbl.textContent = 'p' + (i + 1);
+      wrap.appendChild(img); wrap.appendChild(lbl);
+      previewEl.appendChild(wrap);
+    });
+    document.getElementById('imageUrls').value = '';
+  } else {
+    statusEl.textContent = 'No panels from Stage 4 — use manual upload below.';
   }
 }
 
@@ -2055,22 +2073,52 @@ async function uploadToStorage(e) {
 }
 
 async function createChapter() {
-  if (!sbClient) { await connectSupabase(); return; }
+  if (!sbClient) { await connectSupabase(); if (!sbClient) return; }
   const storyId = document.getElementById('uploadStory').value;
   const epNum = parseInt(document.getElementById('uploadEp').value);
   const title = document.getElementById('uploadTitle').value.trim();
   const isFree = document.getElementById('uploadFree').value === 'true';
   const cost = parseInt(document.getElementById('uploadCost').value);
+
+  if (!storyId) { showStatus('uploadStatus', 'Select a story', 'err'); return; }
+  if (!epNum)   { showStatus('uploadStatus', 'Enter episode number', 'err'); return; }
+  if (!title)   { showStatus('uploadStatus', 'Enter episode title', 'err'); return; }
+
+  let pages = [];
+
+  // Use manually entered URLs if present
   const urlsRaw = document.getElementById('imageUrls').value.trim();
-  if (!storyId || !epNum || !title || !urlsRaw) {
-    showStatus('uploadStatus', 'Fill all fields and provide image URLs', 'err'); return;
+  if (urlsRaw) {
+    pages = urlsRaw.split('\n').map(u => u.trim()).filter(Boolean);
+  } else if (processedCanvases.length > 0) {
+    // Auto-upload Stage 4 canvases as p1.png, p2.png, ...
+    const wrap = document.getElementById('storageProgress');
+    const text = document.getElementById('storageProgressText');
+    const fill = document.getElementById('storageProgressFill');
+    wrap.style.display = 'block';
+    const folder = `chapters/${storyId}/ep${epNum}`;
+    for (let i = 0; i < processedCanvases.length; i++) {
+      text.textContent = `Uploading panel ${i + 1} of ${processedCanvases.length}...`;
+      fill.style.width = Math.round((i / processedCanvases.length) * 100) + '%';
+      const blob = await new Promise(res => processedCanvases[i].toBlob(res, 'image/png'));
+      const path = `${folder}/p${i + 1}.png`;
+      const { error: upErr } = await sbClient.storage.from('manga-images').upload(path, blob, { contentType: 'image/png', upsert: true });
+      if (upErr) { showStatus('uploadStatus', `Upload error on p${i+1}: ${upErr.message}`, 'err'); return; }
+      const { data: pub } = sbClient.storage.from('manga-images').getPublicUrl(path);
+      pages.push(pub.publicUrl);
+    }
+    fill.style.width = '100%';
+    text.textContent = `${pages.length} panels uploaded.`;
+    document.getElementById('imageUrls').value = pages.join('\n');
+  } else {
+    showStatus('uploadStatus', 'No panels found — go back to Stage 4 or use manual upload', 'err'); return;
   }
-  const pages = urlsRaw.split('\n').map(u => u.trim()).filter(Boolean);
+
   showStatus('uploadStatus', `Creating chapter with ${pages.length} panels...`, 'info');
   const { data, error } = await sbClient.from('chapters').insert({ story_id:storyId, episode_number:epNum, title, pages, is_free:isFree, coin_cost:cost }).select();
   if (error) { showStatus('uploadStatus', 'Error: ' + error.message, 'err'); return; }
   await sbClient.from('stories').update({ chapters_count: epNum }).eq('id', storyId);
-  showStatus('uploadStatus', `Chapter "${title}" live with ${pages.length} panels. ID: ${data[0]?.id?.slice(0,8)}...`, 'ok');
+  showStatus('uploadStatus', `✓ Chapter "${title}" live with ${pages.length} panels!`, 'ok');
   showToast('Chapter published to MangaHive!', 'ok');
 }
 
