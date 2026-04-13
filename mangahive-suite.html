@@ -798,6 +798,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <div class="img-grid" id="imgGrid"></div>
 
+  <div style="margin-top:20px;border-top:1px solid var(--border2);padding-top:20px">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px">— or skip generation — upload your own panels</div>
+    <div class="upload-drop" onclick="document.getElementById('ownPanelUpload').click()" style="padding:14px 20px">
+      <div style="font-size:13px;color:var(--white2)">Upload completed panels (p1, p2, p3… sorted by filename)</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">PNG/JPG · multiple files · bypasses AI generation entirely</div>
+      <input type="file" id="ownPanelUpload" multiple accept="image/*" style="display:none" onchange="loadOwnPanels(event)">
+    </div>
+    <div id="ownPanelStatus" style="display:none;margin-top:8px"></div>
+  </div>
+
   <!-- POST-GENERATION PROMPT REVIEW -->
   <div id="postGenSection" style="display:none;margin-top:32px">
     <div class="divider-gold"></div>
@@ -943,6 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <textarea id="scriptArea" rows="14" placeholder="PANEL 1&#10;CHARACTER: dialogue here&#10;&#10;PANEL 2&#10;CHARACTER: next line...&#10;&#10;— or click AI Write Script above to auto-generate —"></textarea>
       </div>
       <button class="btn-primary" onclick="processDialogue()">Apply Dialogue to All Panels →</button>
+      <button class="btn-secondary" onclick="passAllToUpload()" style="margin-top:8px;width:100%">Skip Dialogue — Pass All Panels to Upload →</button>
       <div id="diagStatus"></div>
     </div>
   </div>
@@ -1155,6 +1166,7 @@ let genDone = 0, genFail = 0;
 let genStart = null;
 let loadedPanels = [];
 let processedCanvases = [];
+let skippedPanels = new Set();
 let sbClient = null;
 
 // ══════════════════════════════════════════
@@ -1737,22 +1749,82 @@ function autoTransferPanels() {
 // DIALOGUE
 // ══════════════════════════════════════════
 function handlePanels(e) {
-  const files = Array.from(e.target.files).sort((a,b) => {
-    return (parseInt(a.name.match(/\d+/)?.[0]||0)) - (parseInt(b.name.match(/\d+/)?.[0]||0));
-  });
+  const files = Array.from(e.target.files).sort((a,b) =>
+    (parseInt(a.name.match(/\d+/)?.[0]||0)) - (parseInt(b.name.match(/\d+/)?.[0]||0)));
   loadedPanels = files;
   renderPanelThumbs();
+}
+
+function loadOwnPanels(e) {
+  const files = Array.from(e.target.files).sort((a,b) =>
+    (parseInt(a.name.match(/\d+/)?.[0]||0)) - (parseInt(b.name.match(/\d+/)?.[0]||0)));
+  if (!files.length) return;
+  // Populate results so Stage 3 → Stage 4 flow works
+  results = {};
+  files.forEach((f, i) => { results[i] = { blob: f, prompt: f.name }; });
+  // Enable next button and show count
+  document.getElementById('btnS3Next').disabled = false;
+  const statusEl = document.getElementById('ownPanelStatus');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = `<div class="status-bar status-ok">✓ ${files.length} panels loaded — click "Add Dialogue →" to continue.</div>`;
+  // Also pre-load into loadedPanels for Stage 4
+  loadedPanels = files;
 }
 
 function renderPanelThumbs() {
   const grid = document.getElementById('panelGridDiag');
   grid.innerHTML = '';
+  skippedPanels.clear();
   loadedPanels.forEach((f, i) => {
-    const url = f instanceof Blob ? URL.createObjectURL(f) : URL.createObjectURL(f);
+    const url = URL.createObjectURL(f instanceof Blob ? f : f);
     const d = document.createElement('div');
     d.className = 'panel-thumb-d';
-    d.innerHTML = `<img src="${url}" loading="lazy"><div class="pth-num">P${i+1}</div>`;
+    d.style.position = 'relative';
+    d.innerHTML = `<img src="${url}" loading="lazy" id="pthimg${i}"><div class="pth-num">P${i+1}</div>
+      <button onclick="toggleSkipPanel(${i})" id="skipbtn${i}"
+        style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:1px solid var(--border2);color:var(--muted);font-family:'DM Mono',monospace;font-size:8px;padding:2px 7px;border-radius:3px;cursor:pointer;letter-spacing:.08em">
+        SKIP
+      </button>`;
     grid.appendChild(d);
+  });
+}
+
+function toggleSkipPanel(i) {
+  const btn = document.getElementById('skipbtn' + i);
+  const img = document.getElementById('pthimg' + i);
+  if (skippedPanels.has(i)) {
+    skippedPanels.delete(i);
+    btn.style.color = 'var(--muted)';
+    btn.style.background = 'rgba(0,0,0,.7)';
+    btn.textContent = 'SKIP';
+    img.style.opacity = '1';
+  } else {
+    skippedPanels.add(i);
+    btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(74,171,122,.2)';
+    btn.textContent = 'SKIP ✓';
+    img.style.opacity = '0.4';
+  }
+}
+
+function passAllToUpload() {
+  if (!loadedPanels.length) { document.getElementById('diagStatus').innerHTML = '<div class="status-bar status-err">No panels loaded.</div>'; return; }
+  processedCanvases = [];
+  let done = 0;
+  loadedPanels.forEach((src, idx) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      processedCanvases[idx] = canvas;
+      done++;
+      if (done === loadedPanels.length) {
+        showProcessed();
+        goToStage(5);
+      }
+    };
+    img.src = URL.createObjectURL(src instanceof Blob ? src : src);
   });
 }
 
@@ -1919,6 +1991,13 @@ function processDialogue() {
       canvas.width = img.width; canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
+      // Skip dialogue for marked panels — pass through as-is
+      if (skippedPanels.has(idx)) {
+        processedCanvases[idx] = canvas;
+        done++;
+        if (done === loadedPanels.length) showProcessed();
+        return;
+      }
       const dialogues = parsed[idx + 1] || [];
       const yStep = Math.floor(img.height / (dialogues.length + 1));
       dialogues.forEach((d, di) => {
@@ -2105,29 +2184,18 @@ async function createChapter() {
     const supabaseUrl = document.getElementById('sbUrl').value.trim();
     const serviceKey = document.getElementById('sbServiceKey').value.trim();
     if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key above to upload panels', 'err'); return; }
+    // Use a separate client with service role key — bypasses RLS for storage
+    const adminClient = supabase.createClient(supabaseUrl, serviceKey);
     const folder = `chapters/${storyId}/ep${epNum}`;
     for (let i = 0; i < processedCanvases.length; i++) {
       text.textContent = `Uploading panel ${i + 1} of ${processedCanvases.length}...`;
       fill.style.width = Math.round((i / processedCanvases.length) * 100) + '%';
       const blob = await new Promise(res => processedCanvases[i].toBlob(res, 'image/png'));
-      const dataBase64 = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result.split(',')[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(blob);
-      });
       const path = `${folder}/p${i + 1}.png`;
-      const upRes = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supabaseUrl, serviceKey, path, dataBase64, contentType: 'image/png' })
-      });
-      if (!upRes.ok) {
-        const err = await upRes.json().catch(() => ({}));
-        showStatus('uploadStatus', `Upload error on p${i+1}: ${err.error || upRes.status}`, 'err'); return;
-      }
-      const { publicUrl } = await upRes.json();
-      pages.push(publicUrl);
+      const { error: upErr } = await adminClient.storage.from('manga-images').upload(path, blob, { contentType: 'image/png', upsert: true });
+      if (upErr) { showStatus('uploadStatus', `Upload error on p${i+1}: ${upErr.message}`, 'err'); return; }
+      const { data: pub } = adminClient.storage.from('manga-images').getPublicUrl(path);
+      pages.push(pub.publicUrl);
     }
     fill.style.width = '100%';
     text.textContent = `${pages.length} panels uploaded.`;
