@@ -2174,6 +2174,14 @@ async function createChapter() {
 
   let pages = [];
 
+  // Build admin client (service role) — bypasses RLS for both storage and DB
+  const supabaseUrl = document.getElementById('sbUrl').value.trim();
+  let serviceKey = document.getElementById('sbServiceKey').value.trim();
+  if (!serviceKey) serviceKey = localStorage.getItem('sb_service_key') || '';
+  if (serviceKey) document.getElementById('sbServiceKey').value = serviceKey;
+  if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key in the connection panel above', 'err'); document.getElementById('sbServiceKey').focus(); return; }
+  const adminClient = supabase.createClient(supabaseUrl, serviceKey);
+
   // Use manually entered URLs if present
   const urlsRaw = document.getElementById('imageUrls').value.trim();
   if (urlsRaw) {
@@ -2184,13 +2192,6 @@ async function createChapter() {
     const text = document.getElementById('storageProgressText');
     const fill = document.getElementById('storageProgressFill');
     wrap.style.display = 'block';
-    const supabaseUrl = document.getElementById('sbUrl').value.trim();
-    let serviceKey = document.getElementById('sbServiceKey').value.trim();
-    if (!serviceKey) serviceKey = localStorage.getItem('sb_service_key') || '';
-    if (serviceKey) document.getElementById('sbServiceKey').value = serviceKey;
-    if (!serviceKey) { showStatus('uploadStatus', 'Enter your Supabase Service Role Key in the connection panel above', 'err'); document.getElementById('sbServiceKey').focus(); return; }
-    // Use a separate client with service role key — bypasses RLS for storage
-    const adminClient = supabase.createClient(supabaseUrl, serviceKey);
     const folder = `chapters/${storyId}/ep${epNum}`;
     for (let i = 0; i < processedCanvases.length; i++) {
       text.textContent = `Uploading panel ${i + 1} of ${processedCanvases.length}...`;
@@ -2210,9 +2211,10 @@ async function createChapter() {
   }
 
   showStatus('uploadStatus', `Creating chapter with ${pages.length} panels...`, 'info');
-  const { data, error } = await sbClient.from('chapters').insert({ story_id:storyId, episode_number:epNum, title, pages, is_free:isFree, coin_cost:cost }).select();
+  const dbClient = adminClient || sbClient;
+  const { data, error } = await dbClient.from('chapters').insert({ story_id:storyId, episode_number:epNum, title, pages, is_free:isFree, coin_cost:cost }).select();
   if (error) { showStatus('uploadStatus', 'Error: ' + error.message, 'err'); return; }
-  await sbClient.from('stories').update({ chapters_count: epNum }).eq('id', storyId);
+  await dbClient.from('stories').update({ chapters_count: epNum }).eq('id', storyId);
   showStatus('uploadStatus', `✓ Chapter "${title}" live with ${pages.length} panels!`, 'ok');
   showToast('Chapter published to MangaHive!', 'ok');
 }
