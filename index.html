@@ -821,10 +821,25 @@ async function openVideo(storyId, epNum) {
 
   let chapter = null;
   try {
-    const { data } = await sb.from('chapters')
-      .select('*').eq('story_id', storyId).eq('episode_number', epNum).single();
-    chapter = data;
-  } catch(e) {}
+    // Use maybeSingle() instead of single() to handle 0 or 1 results without error
+    const { data, error } = await sb.from('chapters')
+      .select('*')
+      .eq('story_id', storyId)
+      .eq('episode_number', epNum)
+      .eq('type', 'video')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Chapter fetch error:', error);
+    } else {
+      chapter = data;
+      console.log('Loaded chapter:', chapter);
+    }
+  } catch(e) {
+    console.error('Chapter fetch exception:', e);
+  }
 
   const isFree = chapter ? chapter.is_free : epNum <= 3;
   const coinCost = chapter?.coin_cost || 8;
@@ -842,7 +857,8 @@ async function openVideo(storyId, epNum) {
   }
 
   // Video URL from chapter or demo
-  const videoUrl = chapter?.video_url || s.preview_url || 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4';
+  const videoUrl = chapter?.video_url || s.preview_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+  console.log('Playing video URL:', videoUrl);
   const totalEps = s.chapters_count || 15;
 
   document.getElementById('videoPlayer').innerHTML = `
