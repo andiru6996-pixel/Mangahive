@@ -3,16 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MangaHive Admin</title>
+<title>MangaHive Admin — Stories & Videos</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#0a0a0f; --card:#1c1c26; --surface:#13131a;
   --accent:#ff4e6a; --accent2:#ffd166; --text:#f0f0f8;
   --muted:#6b6b8a; --success:#4ade80; --radius:14px;
+  --video:#9333ea; --video2:#c084fc;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; min-height:100vh; }
+
+/* LOGIN GATE */
 .gate { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; gap:20px; }
 .logo { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; }
 .logo span { color:var(--accent); }
@@ -20,8 +23,8 @@ body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif;
 .box h2 { font-size:18px; margin-bottom:20px; }
 .field { margin-bottom:16px; }
 .field label { display:block; font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
-.field input { width:100%; background:var(--surface); border:1.5px solid #ffffff10; border-radius:12px; color:var(--text); padding:14px 16px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:600; outline:none; }
-.field input:focus { border-color:var(--accent); }
+.field input, .field select, .field textarea { width:100%; background:var(--surface); border:1.5px solid #ffffff10; border-radius:12px; color:var(--text); padding:14px 16px; font-family:'Nunito',sans-serif; font-size:15px; font-weight:600; outline:none; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
 .btn { width:100%; padding:16px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); font-family:'Nunito',sans-serif; font-size:16px; font-weight:900; cursor:pointer; }
 .msg { padding:12px 16px; border-radius:10px; font-size:13px; font-weight:700; margin-bottom:16px; display:none; }
 .msg.err { background:#ff4e6a18; border:1px solid #ff4e6a33; color:#ff4e6a; display:block; }
@@ -29,23 +32,34 @@ body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif;
 
 /* ADMIN PANEL */
 #panel { display:none; }
-.header { background:var(--surface); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #ffffff0c; position:sticky; top:0; z-index:50; }
+.header { background:var(--surface); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #ffffff0c; position:sticky; top:0; z-index:50; flex-wrap:wrap; gap:10px; }
 .hlogo { font-family:'Bebas Neue',sans-serif; font-size:24px; }
 .hlogo span { color:var(--accent); }
 .hbadge { background:#ffd16622; color:var(--accent2); font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; }
 .hout { background:var(--card); border:1px solid #ffffff10; color:var(--muted); padding:8px 16px; border-radius:10px; cursor:pointer; font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; }
-.wrap { max-width:860px; margin:0 auto; padding:24px 20px 60px; }
-.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.wrap { max-width:900px; margin:0 auto; padding:24px 20px 60px; }
+
+/* STATS */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+@media(max-width:600px){ .stats { grid-template-columns:repeat(2,1fr); } }
 .stat { background:var(--card); border-radius:var(--radius); padding:18px; text-align:center; border:1px solid #ffffff08; }
-.snum { font-family:'Bebas Neue',sans-serif; font-size:34px; color:var(--accent); }
-.slbl { font-size:11px; color:var(--muted); font-weight:800; margin-top:4px; }
+.snum { font-family:'Bebas Neue',sans-serif; font-size:30px; color:var(--accent); }
+.snum.video { color:var(--video); }
+.slbl { font-size:10px; color:var(--muted); font-weight:800; margin-top:4px; }
+
+/* TABS */
 .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
 .tab { padding:10px 18px; border-radius:30px; border:1.5px solid #ffffff12; background:var(--card); color:var(--muted); font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; cursor:pointer; }
 .tab.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.tab.video.on { background:var(--video); border-color:var(--video); }
+
+/* SECTIONS */
 .sec { display:none; }
 .sec.on { display:block; }
 .fcard { background:var(--card); border-radius:var(--radius); border:1px solid #ffffff08; padding:22px; margin-bottom:18px; }
-.ftitle { font-family:'Bebas Neue',sans-serif; font-size:22px; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #ffffff0c; }
+.fcard.video { border-color:#9333ea33; }
+.ftitle { font-family:'Bebas Neue',sans-serif; font-size:22px; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #ffffff0c; display:flex; align-items:center; gap:10px; }
+.ftitle .icon { font-size:20px; }
 .fg { display:grid; gap:14px; }
 .fg2 { grid-template-columns:1fr 1fr; }
 @media(max-width:500px){ .fg2 { grid-template-columns:1fr; } }
@@ -55,26 +69,52 @@ body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif;
 .fl input:focus, .fl select:focus, .fl textarea:focus { border-color:var(--accent); }
 .fl select option { background:#1c1c26; }
 .fl textarea { resize:vertical; min-height:80px; }
-.upzone { border:2px dashed #ffffff18; border-radius:var(--radius); padding:28px; text-align:center; cursor:pointer; background:var(--surface); }
+
+/* UPLOAD ZONES */
+.upzone { border:2px dashed #ffffff18; border-radius:var(--radius); padding:28px; text-align:center; cursor:pointer; background:var(--surface); transition:border-color 0.2s; }
+.upzone:hover { border-color:var(--accent); }
+.upzone.video:hover { border-color:var(--video); }
 .upzone input { display:none; }
 .sbtn { width:100%; padding:15px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); font-family:'Nunito',sans-serif; font-size:15px; font-weight:900; cursor:pointer; margin-top:6px; }
+.sbtn.video { background:var(--video); }
 .sbtn:disabled { opacity:0.5; }
+
+/* TOGGLES */
 .trow { display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:14px 16px; border-radius:12px; border:1px solid #ffffff08; }
 .tgl { width:46px; height:25px; background:#ffffff15; border-radius:30px; position:relative; cursor:pointer; border:none; transition:background 0.2s; }
 .tgl.on { background:var(--accent); }
+.tgl.video.on { background:var(--video); }
 .tgl::after { content:''; position:absolute; top:3px; left:3px; width:19px; height:19px; background:#fff; border-radius:50%; transition:transform 0.2s; }
 .tgl.on::after { transform:translateX(21px); }
+
+/* PREVIEW */
 .prevs { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 .prevs img { width:56px; height:75px; object-fit:cover; border-radius:8px; }
+.prevs video { width:100px; height:56px; object-fit:cover; border-radius:8px; }
 #cprev { width:100%; height:160px; object-fit:cover; border-radius:10px; display:none; margin-top:10px; }
+#vprev { width:100%; max-height:200px; object-fit:contain; border-radius:10px; display:none; margin-top:10px; background:#000; }
 .amsg { padding:12px 16px; border-radius:10px; font-size:13px; font-weight:700; margin-bottom:16px; display:none; }
 .amsg.err { background:#ff4e6a18; border:1px solid #ff4e6a33; color:#ff4e6a; display:block; }
 .amsg.ok { background:#4ade8018; border:1px solid #4ade8033; color:#4ade80; display:block; }
+
+/* TABLE */
 table { width:100%; border-collapse:collapse; }
 th { text-align:left; padding:10px 12px; font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; border-bottom:1px solid #ffffff0c; }
 td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-align:middle; }
 .sthumb { width:38px; height:52px; object-fit:cover; border-radius:6px; }
 .dbtn { padding:5px 12px; border-radius:8px; font-size:12px; font-weight:800; border:none; cursor:pointer; font-family:'Nunito',sans-serif; background:#ff4e6a18; color:var(--accent); }
+.type-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:800; }
+.type-badge.manga { background:#ff4e6a22; color:var(--accent); }
+.type-badge.video { background:#9333ea22; color:var(--video2); }
+
+/* TYPE SELECTOR */
+.type-select { display:flex; gap:8px; margin-bottom:16px; }
+.type-opt { flex:1; padding:12px; border-radius:12px; border:2px solid #ffffff12; background:var(--surface); text-align:center; cursor:pointer; transition:all 0.2s; }
+.type-opt.active { border-color:var(--accent); background:#ff4e6a12; }
+.type-opt.video.active { border-color:var(--video); background:#9333ea12; }
+.type-opt .icon { font-size:24px; display:block; margin-bottom:6px; }
+.type-opt .label { font-size:12px; font-weight:800; color:var(--muted); }
+.type-opt.active .label { color:var(--text); }
 </style>
 </head>
 <body>
@@ -91,7 +131,7 @@ td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-a
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="apass" placeholder="Your password" id="apass">
+      <input type="password" id="apass" placeholder="Your password">
     </div>
     <button class="btn" id="loginBtn">Login to Admin Panel</button>
   </div>
@@ -102,25 +142,43 @@ td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-a
   <div class="header">
     <div class="hlogo">Manga<span>Hive</span></div>
     <div class="hbadge">⚡ ADMIN</div>
+    <a href="index.html" style="color:var(--muted);font-size:12px;font-weight:700;text-decoration:none">← Back to App</a>
     <button class="hout" id="outBtn">Logout</button>
   </div>
   <div class="wrap">
     <div class="stats">
       <div class="stat"><div class="snum" id="ns">0</div><div class="slbl">📚 Stories</div></div>
+      <div class="stat"><div class="snum video" id="nv">0</div><div class="slbl">🎬 Videos</div></div>
       <div class="stat"><div class="snum" id="nc">0</div><div class="slbl">📄 Chapters</div></div>
       <div class="stat"><div class="snum" id="nu">0</div><div class="slbl">👥 Users</div></div>
     </div>
     <div class="tabs">
       <button class="tab on" id="t1">➕ Add Story</button>
-      <button class="tab" id="t2">📄 Add Chapter</button>
-      <button class="tab" id="t3">📚 Manage</button>
+      <button class="tab" id="t2">📄 Add Manga Chapter</button>
+      <button class="tab video" id="t3">🎬 Add Video Episode</button>
+      <button class="tab" id="t4">📚 Manage</button>
     </div>
     <div class="amsg" id="amsg"></div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
     <!-- ADD STORY -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="sec on" id="s1">
       <div class="fcard">
-        <div class="ftitle">📚 ADD NEW STORY</div>
+        <div class="ftitle"><span class="icon">📚</span> ADD NEW STORY</div>
+        
+        <!-- Content Type Selector -->
+        <div class="type-select">
+          <div class="type-opt active" id="typeOptManga" onclick="selectStoryType('manga')">
+            <span class="icon">📖</span>
+            <span class="label">Manga / Comic</span>
+          </div>
+          <div class="type-opt video" id="typeOptVideo" onclick="selectStoryType('video')">
+            <span class="icon">🎬</span>
+            <span class="label">Video Drama</span>
+          </div>
+        </div>
+
         <div class="fg">
           <div class="fl"><label>Title *</label><input type="text" id="stitle" placeholder="Story title"></div>
           <div class="fg fg2">
@@ -139,62 +197,128 @@ td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-a
             <div class="fl"><label>Status</label>
               <select id="sstatus"><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select>
             </div>
-            <div class="fl"><label>Tags</label><input type="text" id="stags" placeholder="action, romance"></div>
+            <div class="fl"><label>Tags</label><input type="text" id="stags" placeholder="romance, drama, ceo"></div>
           </div>
           <div class="fl">
             <label>Cover Image *</label>
             <div class="upzone" id="czone">
               <div style="font-size:28px">🖼️</div>
-              <div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:700">Tap to upload cover</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px">JPG or PNG · Max 5MB</div>
-              <input type="file" id="cfile" accept="image/*">
+              <div style="font-size:13px;color:var(--muted);margin-top:8px">Tap to upload cover (9:16 ratio)</div>
+              <input type="file" accept="image/*" id="cfile" onchange="previewCover(this)">
             </div>
             <img id="cprev">
           </div>
-          <div class="trow">
-            <div><div style="font-size:14px;font-weight:700">🔥 Mark as Trending</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Shows in featured section</div></div>
-            <button class="tgl" id="ttgl"></button>
+          
+          <!-- Video Preview URL (only for video type) -->
+          <div class="fl" id="previewUrlField" style="display:none">
+            <label>Preview Video URL (optional)</label>
+            <input type="text" id="spreview" placeholder="https://... (short trailer video)">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Optional: A short preview video that plays on the story detail page</div>
           </div>
-          <button class="sbtn" id="addStoryBtn">➕ Add Story</button>
+          
+          <div class="trow">
+            <span style="font-weight:700">🔥 Mark as Trending</span>
+            <button class="tgl" id="ttgl" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <button class="sbtn" id="addStoryBtn" onclick="doAddStory()">ADD STORY</button>
         </div>
       </div>
     </div>
 
-    <!-- ADD CHAPTER -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- ADD MANGA CHAPTER -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="sec" id="s2">
       <div class="fcard">
-        <div class="ftitle">📄 ADD CHAPTER</div>
+        <div class="ftitle"><span class="icon">📄</span> ADD MANGA CHAPTER</div>
         <div class="fg">
-          <div class="fl"><label>Story *</label><select id="cstory"><option value="">Select story...</option></select></div>
+          <div class="fl">
+            <label>Select Story *</label>
+            <select id="cstory"></select>
+          </div>
           <div class="fg fg2">
-            <div class="fl"><label>Episode No. *</label><input type="number" id="cnum" placeholder="1" min="1"></div>
-            <div class="fl"><label>Episode Title</label><input type="text" id="ctitle" placeholder="The Beginning"></div>
+            <div class="fl"><label>Episode Number *</label><input type="number" id="cnum" min="1" placeholder="1"></div>
+            <div class="fl"><label>Episode Title</label><input type="text" id="ctitle" placeholder="e.g. Prologue"></div>
           </div>
           <div class="trow">
-            <div><div style="font-size:14px;font-weight:700">🔓 Free Episode</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Toggle OFF for premium</div></div>
-            <button class="tgl on" id="ftgl"></button>
+            <span style="font-weight:700">🆓 Free Episode</span>
+            <button class="tgl on" id="ftgl" onclick="this.classList.toggle('on')"></button>
           </div>
-          <div class="fl" id="ccostf" style="display:none"><label>Coin Cost</label><input type="number" id="ccost" value="5" min="1"></div>
           <div class="fl">
-            <label>Pages *</label>
-            <div class="upzone" id="pzone">
-              <div style="font-size:28px">🖼️</div>
-              <div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:700">Tap to upload pages</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px">Multiple images · In order</div>
-              <input type="file" id="pfiles" accept="image/*" multiple>
+            <label>Coin Cost (if not free)</label>
+            <input type="number" id="ccost" value="5" min="1">
+          </div>
+          <div class="fl">
+            <label>Page Images *</label>
+            <div class="upzone">
+              <div style="font-size:28px">📄</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:8px">Upload manga pages (will be sorted by filename)</div>
+              <input type="file" accept="image/*" multiple id="pfiles" onchange="previewPages(this)">
             </div>
             <div class="prevs" id="pprev"></div>
           </div>
-          <button class="sbtn" id="addChapBtn">📄 Upload Chapter</button>
+          <button class="sbtn" id="addChapBtn" onclick="doAddChapter()">UPLOAD CHAPTER</button>
         </div>
       </div>
     </div>
 
-    <!-- MANAGE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- ADD VIDEO EPISODE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="sec" id="s3">
+      <div class="fcard video">
+        <div class="ftitle"><span class="icon">🎬</span> ADD VIDEO EPISODE</div>
+        <div class="fg">
+          <div class="fl">
+            <label>Select Video Story *</label>
+            <select id="vstory"></select>
+          </div>
+          <div class="fg fg2">
+            <div class="fl"><label>Episode Number *</label><input type="number" id="vnum" min="1" placeholder="1"></div>
+            <div class="fl"><label>Episode Title</label><input type="text" id="vtitle" placeholder="e.g. First Meeting"></div>
+          </div>
+          <div class="fl">
+            <label>Video URL *</label>
+            <input type="text" id="vurl" placeholder="https://... (MP4, YouTube, Vimeo, etc.)">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              Paste a direct video URL (MP4) or embed link. For Supabase storage, upload first then paste the public URL.
+            </div>
+          </div>
+          <div class="fl">
+            <label>OR Upload Video File</label>
+            <div class="upzone video">
+              <div style="font-size:28px">🎬</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:8px">Upload video file (max 50MB for free tier)</div>
+              <input type="file" accept="video/*" id="vfile" onchange="previewVideo(this)">
+            </div>
+            <video id="vprev" controls></video>
+          </div>
+          <div class="fg fg2">
+            <div class="fl">
+              <label>Duration (seconds)</label>
+              <input type="number" id="vduration" placeholder="90" min="1">
+            </div>
+            <div class="fl">
+              <label>Coin Cost (if not free)</label>
+              <input type="number" id="vcost" value="8" min="1">
+            </div>
+          </div>
+          <div class="trow">
+            <span style="font-weight:700">🆓 Free Episode</span>
+            <button class="tgl video on" id="vftgl" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <button class="sbtn video" id="addVideoBtn" onclick="doAddVideoEpisode()">UPLOAD VIDEO EPISODE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- MANAGE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="sec" id="s4">
       <div class="fcard">
-        <div class="ftitle">📚 STORIES</div>
-        <div id="stlist"><div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div></div>
+        <div class="ftitle"><span class="icon">📚</span> MANAGE STORIES</div>
+        <div id="stlist"></div>
       </div>
     </div>
   </div>
@@ -202,304 +326,409 @@ td { padding:12px; border-bottom:1px solid #ffffff06; font-size:13px; vertical-a
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// MANGAHIVE ADMIN — MANGA + VIDEO SUPPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const SURL = 'https://uhjptxhhaipckshgytul.supabase.co';
-const SKEY = 'sb_publishable_ZA-j1p8RFxOLSkDnWcqG8Q_Nl52WVN9';
-const ADMIN = 'andiru6996@gmail.com';
-const { createClient } = supabase;
-const sb = createClient(SURL, SKEY);
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoanB0eGhoYWlwY2tzaGd5dHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNTEyNTUsImV4cCI6MjA1OTcyNzI1NX0.jM17wV5GkkFUwPG4zk9RLqksMajvqfyCKPJdFMMpWBM';
+
+const sb = supabase.createClient(SURL, SKEY);
 let token = '';
-let refreshToken = '';
+let selectedStoryType = 'manga';
 
-// Auto refresh token every 50 minutes
-setInterval(async function(){
-  if(!refreshToken) return;
-  try {
-    var res = await fetch(SURL+'/auth/v1/token?grant_type=refresh_token', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SKEY},
-      body: JSON.stringify({refresh_token: refreshToken})
-    });
-    var data = await res.json();
-    if(data.access_token){
-      token = data.access_token;
-      refreshToken = data.refresh_token;
-      localStorage.setItem('mh_token', token);
-      localStorage.setItem('mh_refresh', data.refresh_token);
-    }
-  } catch(e){ console.log('Token refresh failed', e); }
-}, 50 * 60 * 1000);
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('loginBtn').onclick = login;
+document.getElementById('outBtn').onclick = logout;
+document.getElementById('czone').onclick = () => document.getElementById('cfile').click();
 
-// INIT
-window.addEventListener('load', function() {
-  // Login button
-  document.getElementById('loginBtn').addEventListener('click', doLogin);
-  document.getElementById('apass').addEventListener('keypress', function(e){ if(e.key==='Enter') doLogin(); });
+// Tab switching
+document.getElementById('t1').onclick = function(){ switchTab(1, this); };
+document.getElementById('t2').onclick = function(){ switchTab(2, this); loadStorySelect('manga'); };
+document.getElementById('t3').onclick = function(){ switchTab(3, this); loadStorySelect('video'); };
+document.getElementById('t4').onclick = function(){ switchTab(4, this); loadTable(); };
 
-  // Logout
-  document.getElementById('outBtn').addEventListener('click', function(){
-    token=''; localStorage.removeItem('mh_token');
-    document.getElementById('gate').style.display='flex';
-    document.getElementById('panel').style.display='none';
-  });
+function switchTab(n, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('s'+n).classList.add('on');
+  document.getElementById('amsg').className = 'amsg';
+}
 
-  // Tabs
-  document.getElementById('t1').addEventListener('click', function(){ showSec('s1'); setTab(this); });
-  document.getElementById('t2').addEventListener('click', function(){ showSec('s2'); setTab(this); loadStorySelect(); });
-  document.getElementById('t3').addEventListener('click', function(){ showSec('s3'); setTab(this); loadTable(); });
-
-  // Toggles
-  document.getElementById('ttgl').addEventListener('click', function(){ this.classList.toggle('on'); });
-  document.getElementById('ftgl').addEventListener('click', function(){
-    this.classList.toggle('on');
-    document.getElementById('ccostf').style.display = this.classList.contains('on') ? 'none' : 'block';
-  });
-
-  // Upload zones
-  document.getElementById('czone').addEventListener('click', function(){ document.getElementById('cfile').click(); });
-  document.getElementById('pzone').addEventListener('click', function(){ document.getElementById('pfiles').click(); });
-
-  document.getElementById('cfile').addEventListener('change', function(){
-    if(this.files[0]){
-      var p = document.getElementById('cprev');
-      p.src = URL.createObjectURL(this.files[0]);
-      p.style.display = 'block';
-    }
-  });
-
-  document.getElementById('pfiles').addEventListener('change', function(){
-    var wrap = document.getElementById('pprev');
-    wrap.innerHTML = '';
-    Array.from(this.files).slice(0,12).forEach(function(f){
-      var img = document.createElement('img');
-      img.src = URL.createObjectURL(f);
-      wrap.appendChild(img);
-    });
-  });
-
-  // Add story
-  document.getElementById('addStoryBtn').addEventListener('click', doAddStory);
-  // Add chapter
-  document.getElementById('addChapBtn').addEventListener('click', doAddChapter);
-
-  // Check saved session via Supabase SDK
-  sb.auth.getSession().then(function({ data }){
-    if(data.session && data.session.user.email === ADMIN){
-      token = data.session.access_token;
-      refreshToken = data.session.refresh_token;
-      showPanel();
-    }
-  });
-
-  // Auto refresh via SDK
-  sb.auth.onAuthStateChange(function(event, session){
-    if(session){ token = session.access_token; refreshToken = session.refresh_token; }
-  });
+// Check existing session
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    token = data.session.access_token;
+    showPanel();
+  }
 });
 
-async function doLogin(){
-  var email = document.getElementById('aemail').value.trim().toLowerCase();
-  var pass = document.getElementById('apass').value;
-  var msg = document.getElementById('lmsg');
-
-  if(email !== ADMIN){ msg.className='msg err'; msg.textContent='Not authorized as admin'; return; }
-  if(!pass){ msg.className='msg err'; msg.textContent='Enter your password'; return; }
-
-  msg.className='msg ok'; msg.textContent='Logging in...';
-
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('aemail').value.trim();
+  const pass = document.getElementById('apass').value;
+  
+  if (!email || !pass) {
+    document.getElementById('lmsg').textContent = 'Enter email and password';
+    document.getElementById('lmsg').className = 'msg err';
+    return;
+  }
+  
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(error) throw error;
+    if (error) throw error;
     token = data.session.access_token;
-    refreshToken = data.session.refresh_token;
-    localStorage.setItem('mh_token', token);
-    localStorage.setItem('mh_refresh', refreshToken);
     showPanel();
-  } catch(e){
-    msg.className='msg err';
-    msg.textContent = 'Login error: '+e.message;
+  } catch(e) {
+    document.getElementById('lmsg').textContent = e.message;
+    document.getElementById('lmsg').className = 'msg err';
   }
 }
 
-function showPanel(){
-  document.getElementById('gate').style.display='none';
-  document.getElementById('panel').style.display='block';
+async function logout() {
+  await sb.auth.signOut();
+  token = '';
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('panel').style.display = 'none';
+}
+
+function showPanel() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
   loadStats();
+  loadStorySelect('manga');
+  loadStorySelect('video');
 }
 
-function showSec(id){
-  document.querySelectorAll('.sec').forEach(function(s){ s.classList.remove('on'); });
-  document.getElementById(id).classList.add('on');
+// ─── STORY TYPE SELECTOR ──────────────────────────────────────────────────────
+function selectStoryType(type) {
+  selectedStoryType = type;
+  document.getElementById('typeOptManga').classList.toggle('active', type === 'manga');
+  document.getElementById('typeOptVideo').classList.toggle('active', type === 'video');
+  document.getElementById('previewUrlField').style.display = type === 'video' ? 'block' : 'none';
 }
 
-function setTab(el){
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
-  el.classList.add('on');
+// ─── PREVIEWS ─────────────────────────────────────────────────────────────────
+function previewCover(input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('cprev').src = e.target.result;
+      document.getElementById('cprev').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
-function amsg(txt, type){
-  var el = document.getElementById('amsg');
-  el.textContent = txt;
-  el.className = 'amsg '+(type==='ok'?'ok':'err');
-  if(type==='ok') setTimeout(function(){ el.className='amsg'; },5000);
+function previewPages(input) {
+  const files = input.files;
+  const wrap = document.getElementById('pprev');
+  wrap.innerHTML = '';
+  for (let i = 0; i < Math.min(files.length, 6); i++) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      wrap.innerHTML += `<img src="${e.target.result}">`;
+    };
+    reader.readAsDataURL(files[i]);
+  }
+  if (files.length > 6) {
+    wrap.innerHTML += `<div style="display:flex;align-items:center;font-size:12px;color:var(--muted)">+${files.length - 6} more</div>`;
+  }
 }
 
-async function api(path, method, body){
-  const { data: { session } } = await sb.auth.getSession();
-  const currentToken = session ? session.access_token : token;
-  var opts = {
-    method: method||'GET',
-    headers:{ 'apikey':SKEY, 'Authorization':'Bearer '+currentToken, 'Content-Type':'application/json', 'Prefer':'return=representation' }
+function previewVideo(input) {
+  const file = input.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    document.getElementById('vprev').src = url;
+    document.getElementById('vprev').style.display = 'block';
+  }
+}
+
+// ─── STATUS MESSAGE ───────────────────────────────────────────────────────────
+function amsg(msg, type) {
+  const el = document.getElementById('amsg');
+  el.textContent = msg;
+  el.className = 'amsg ' + type;
+}
+
+// ─── API HELPERS ──────────────────────────────────────────────────────────────
+async function api(endpoint, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: {
+      'apikey': SKEY,
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
   };
-  if(body) opts.body = JSON.stringify(body);
-  var res = await fetch(SURL+'/rest/v1/'+path, opts);
-  return await res.json();
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(SURL + '/rest/v1/' + endpoint, opts);
+  if (method === 'DELETE') return true;
+  return res.json();
 }
 
-async function loadStats(){
+async function loadStats() {
   try {
-    var s = await fetch(SURL+'/rest/v1/stories?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
-    var sc = s.headers.get('content-range');
+    // Total stories
+    const s = await fetch(SURL+'/rest/v1/stories?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    const sc = s.headers.get('content-range');
     document.getElementById('ns').textContent = sc ? sc.split('/')[1] : '0';
 
-    var c = await fetch(SURL+'/rest/v1/chapters?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
-    var cc = c.headers.get('content-range');
+    // Video stories count
+    const { data: videoData } = await sb.from('stories').select('id').eq('type', 'video');
+    document.getElementById('nv').textContent = videoData?.length || '0';
+
+    // Chapters
+    const c = await fetch(SURL+'/rest/v1/chapters?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    const cc = c.headers.get('content-range');
     document.getElementById('nc').textContent = cc ? cc.split('/')[1] : '0';
 
-    var u = await fetch(SURL+'/rest/v1/profiles?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
-    var uc = u.headers.get('content-range');
+    // Users
+    const u = await fetch(SURL+'/rest/v1/profiles?select=count', {headers:{'apikey':SKEY,'Authorization':'Bearer '+token,'Prefer':'count=exact'}});
+    const uc = u.headers.get('content-range');
     document.getElementById('nu').textContent = uc ? uc.split('/')[1] : '0';
-  } catch(e){ console.log('stats err',e); }
+  } catch(e) { console.log('stats err', e); }
 }
 
-async function uploadFile(file, path){
+// ─── UPLOAD FILE ──────────────────────────────────────────────────────────────
+async function uploadFile(file, path) {
   const { data, error } = await sb.storage
     .from('manga-images')
     .upload(path, file, { contentType: file.type, upsert: true });
-  if(error) throw new Error(error.message);
+  if (error) throw new Error(error.message);
   const { data: urlData } = sb.storage.from('manga-images').getPublicUrl(path);
   return urlData.publicUrl;
 }
 
-async function doAddStory(){
-  var title = document.getElementById('stitle').value.trim();
-  var genre = document.getElementById('sgenre').value;
-  var author = document.getElementById('sauthor').value.trim();
-  var synopsis = document.getElementById('ssynopsis').value.trim();
-  var status = document.getElementById('sstatus').value;
-  var tags = document.getElementById('stags').value.split(',').map(function(t){return t.trim();}).filter(Boolean);
-  var trending = document.getElementById('ttgl').classList.contains('on');
-  var cfile = document.getElementById('cfile').files[0];
+// ─── ADD STORY ────────────────────────────────────────────────────────────────
+async function doAddStory() {
+  const title = document.getElementById('stitle').value.trim();
+  const genre = document.getElementById('sgenre').value;
+  const author = document.getElementById('sauthor').value.trim();
+  const synopsis = document.getElementById('ssynopsis').value.trim();
+  const status = document.getElementById('sstatus').value;
+  const tags = document.getElementById('stags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const trending = document.getElementById('ttgl').classList.contains('on');
+  const cfile = document.getElementById('cfile').files[0];
+  const previewUrl = document.getElementById('spreview').value.trim();
 
-  if(!title||!genre||!author||!synopsis) return amsg('Fill all required fields','err');
-  if(!cfile) return amsg('Upload a cover image','err');
+  if (!title || !genre || !author || !synopsis) return amsg('Fill all required fields', 'err');
+  if (!cfile) return amsg('Upload a cover image', 'err');
 
-  var btn = document.getElementById('addStoryBtn');
+  const btn = document.getElementById('addStoryBtn');
   btn.disabled = true;
-  amsg('Uploading cover...','ok');
+  amsg('Uploading cover...', 'ok');
 
   try {
-    var ext = cfile.name.split('.').pop();
-    var coverUrl = await uploadFile(cfile, 'covers/'+Date.now()+'.'+ext);
-    amsg('Saving story...','ok');
-    var result = await api('stories', 'POST', {
+    const ext = cfile.name.split('.').pop();
+    const coverUrl = await uploadFile(cfile, 'covers/' + Date.now() + '.' + ext);
+    amsg('Saving story...', 'ok');
+    
+    const storyData = {
       title, genre, author, synopsis, status, tags,
-      is_trending: trending, cover_url: coverUrl,
-      views:0, rating:4.8, chapters_count:0,
+      type: selectedStoryType,
+      is_trending: trending, 
+      cover_url: coverUrl,
+      views: 0, 
+      rating: 4.8, 
+      chapters_count: 0,
       created_at: new Date().toISOString()
-    });
-    if(result && result[0]) {
-      amsg('✅ "'+title+'" added!','ok');
-      document.getElementById('stitle').value='';
-      document.getElementById('sauthor').value='';
-      document.getElementById('ssynopsis').value='';
-      document.getElementById('cfile').value='';
-      document.getElementById('cprev').style.display='none';
+    };
+    
+    if (selectedStoryType === 'video' && previewUrl) {
+      storyData.preview_url = previewUrl;
+    }
+    
+    const result = await api('stories', 'POST', storyData);
+    
+    if (result && result[0]) {
+      amsg(`✅ "${title}" added as ${selectedStoryType === 'video' ? '🎬 Video Drama' : '📖 Manga'}!`, 'ok');
+      document.getElementById('stitle').value = '';
+      document.getElementById('sauthor').value = '';
+      document.getElementById('ssynopsis').value = '';
+      document.getElementById('stags').value = '';
+      document.getElementById('spreview').value = '';
+      document.getElementById('cfile').value = '';
+      document.getElementById('cprev').style.display = 'none';
       loadStats();
     } else {
-      amsg('Error: '+JSON.stringify(result),'err');
+      amsg('Error: ' + JSON.stringify(result), 'err');
     }
-  } catch(e){ amsg('Error: '+e.message,'err'); }
+  } catch(e) { amsg('Error: ' + e.message, 'err'); }
   btn.disabled = false;
 }
 
-async function loadStorySelect(){
+// ─── LOAD STORY SELECTS ───────────────────────────────────────────────────────
+async function loadStorySelect(type) {
   try {
-    var data = await api('stories?select=id,title&order=title');
-    var sel = document.getElementById('cstory');
+    const selectId = type === 'video' ? 'vstory' : 'cstory';
+    let query = sb.from('stories').select('id,title,type').order('title');
+    
+    if (type === 'video') {
+      query = query.eq('type', 'video');
+    } else {
+      query = query.or('type.eq.manga,type.is.null');
+    }
+    
+    const { data } = await query;
+    const sel = document.getElementById(selectId);
     sel.innerHTML = '<option value="">Select story</option>';
-    (data||[]).forEach(function(s){
-      sel.innerHTML += '<option value="'+s.id+'">'+s.title+'</option>';
+    (data || []).forEach(s => {
+      sel.innerHTML += `<option value="${s.id}">${s.title}</option>`;
     });
-  } catch(e){}
+  } catch(e) { console.log('load select err', e); }
 }
 
-async function doAddChapter(){
-  var storyId = document.getElementById('cstory').value;
-  var epNum = document.getElementById('cnum').value;
-  var epTitle = document.getElementById('ctitle').value.trim();
-  var isFree = document.getElementById('ftgl').classList.contains('on');
-  var coinCost = isFree ? 0 : parseInt(document.getElementById('ccost').value||5);
-  var pfiles = document.getElementById('pfiles').files;
+// ─── ADD MANGA CHAPTER ────────────────────────────────────────────────────────
+async function doAddChapter() {
+  const storyId = document.getElementById('cstory').value;
+  const epNum = document.getElementById('cnum').value;
+  const epTitle = document.getElementById('ctitle').value.trim();
+  const isFree = document.getElementById('ftgl').classList.contains('on');
+  const coinCost = isFree ? 0 : parseInt(document.getElementById('ccost').value || 5);
+  const pfiles = document.getElementById('pfiles').files;
 
-  if(!storyId) return amsg('Select a story','err');
-  if(!epNum) return amsg('Enter episode number','err');
-  if(!pfiles.length) return amsg('Upload page images','err');
+  if (!storyId) return amsg('Select a story', 'err');
+  if (!epNum) return amsg('Enter episode number', 'err');
+  if (!pfiles.length) return amsg('Upload page images', 'err');
 
-  var btn = document.getElementById('addChapBtn');
+  const btn = document.getElementById('addChapBtn');
   btn.disabled = true;
-  var urls = [];
+  const urls = [];
 
   try {
-    for(var i=0; i<pfiles.length; i++){
-      amsg('Uploading page '+(i+1)+'/'+pfiles.length+'...','ok');
-      var f = pfiles[i];
-      var ext = f.name.split('.').pop();
-      var url = await uploadFile(f, 'chapters/'+storyId+'/ep'+epNum+'/p'+(i+1)+'.'+ext);
+    for (let i = 0; i < pfiles.length; i++) {
+      amsg(`Uploading page ${i+1}/${pfiles.length}...`, 'ok');
+      const f = pfiles[i];
+      const ext = f.name.split('.').pop();
+      const url = await uploadFile(f, `chapters/${storyId}/ep${epNum}/p${i+1}.${ext}`);
       urls.push(url);
     }
-    amsg('Saving chapter...','ok');
-    var result = await api('chapters', 'POST', {
+    amsg('Saving chapter...', 'ok');
+    const result = await api('chapters', 'POST', {
       story_id: storyId,
       episode_number: parseInt(epNum),
-      title: epTitle||'Episode '+epNum,
+      title: epTitle || `Episode ${epNum}`,
       is_free: isFree,
       coin_cost: coinCost,
       pages: urls,
+      type: 'manga',
       created_at: new Date().toISOString()
     });
-    if(result && result[0]){
-      amsg('✅ Episode '+epNum+' uploaded with '+urls.length+' pages!','ok');
-      document.getElementById('cnum').value='';
-      document.getElementById('ctitle').value='';
-      document.getElementById('pfiles').value='';
-      document.getElementById('pprev').innerHTML='';
+    
+    if (result && result[0]) {
+      // Update story chapters_count
+      await sb.rpc('increment_chapters', { story_id: storyId }).catch(() => {});
+      
+      amsg(`✅ Episode ${epNum} uploaded with ${urls.length} pages!`, 'ok');
+      document.getElementById('cnum').value = '';
+      document.getElementById('ctitle').value = '';
+      document.getElementById('pfiles').value = '';
+      document.getElementById('pprev').innerHTML = '';
       loadStats();
     } else {
-      amsg('Error: '+JSON.stringify(result),'err');
+      amsg('Error: ' + JSON.stringify(result), 'err');
     }
-  } catch(e){ amsg('Error: '+e.message,'err'); }
+  } catch(e) { amsg('Error: ' + e.message, 'err'); }
   btn.disabled = false;
 }
 
-async function loadTable(){
+// ─── ADD VIDEO EPISODE ────────────────────────────────────────────────────────
+async function doAddVideoEpisode() {
+  const storyId = document.getElementById('vstory').value;
+  const epNum = document.getElementById('vnum').value;
+  const epTitle = document.getElementById('vtitle').value.trim();
+  const isFree = document.getElementById('vftgl').classList.contains('on');
+  const coinCost = isFree ? 0 : parseInt(document.getElementById('vcost').value || 8);
+  const duration = parseInt(document.getElementById('vduration').value) || 90;
+  let videoUrl = document.getElementById('vurl').value.trim();
+  const vfile = document.getElementById('vfile').files[0];
+
+  if (!storyId) return amsg('Select a video story', 'err');
+  if (!epNum) return amsg('Enter episode number', 'err');
+  if (!videoUrl && !vfile) return amsg('Enter video URL or upload a file', 'err');
+
+  const btn = document.getElementById('addVideoBtn');
+  btn.disabled = true;
+
   try {
-    var data = await api('stories?select=*&order=created_at.desc');
-    var wrap = document.getElementById('stlist');
-    if(!data||!data.length){ wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">No stories yet.</div>'; return; }
-    var html = '<div style="overflow-x:auto"><table><tr><th>Cover</th><th>Title</th><th>Genre</th><th>Eps</th><th>Del</th></tr>';
-    data.forEach(function(s){
-      html += '<tr><td><img class="sthumb" src="'+s.cover_url+'" onerror="this.style.display=\'none\'"></td><td><b>'+s.title+'</b><br><small style="color:var(--muted)">'+s.author+'</small></td><td>'+s.genre+'</td><td>'+s.chapters_count+'</td><td><button class="dbtn" onclick="delStory(\''+s.id+'\',\''+s.title+'\')">Del</button></td></tr>';
+    // If file uploaded, upload to storage
+    if (vfile && !videoUrl) {
+      amsg('Uploading video file...', 'ok');
+      const ext = vfile.name.split('.').pop();
+      videoUrl = await uploadFile(vfile, `videos/${storyId}/ep${epNum}.${ext}`);
+    }
+    
+    amsg('Saving video episode...', 'ok');
+    const result = await api('chapters', 'POST', {
+      story_id: storyId,
+      episode_number: parseInt(epNum),
+      title: epTitle || `Episode ${epNum}`,
+      is_free: isFree,
+      coin_cost: coinCost,
+      video_url: videoUrl,
+      duration: duration,
+      type: 'video',
+      created_at: new Date().toISOString()
+    });
+    
+    if (result && result[0]) {
+      amsg(`✅ Video Episode ${epNum} added!`, 'ok');
+      document.getElementById('vnum').value = '';
+      document.getElementById('vtitle').value = '';
+      document.getElementById('vurl').value = '';
+      document.getElementById('vduration').value = '';
+      document.getElementById('vfile').value = '';
+      document.getElementById('vprev').style.display = 'none';
+      loadStats();
+    } else {
+      amsg('Error: ' + JSON.stringify(result), 'err');
+    }
+  } catch(e) { amsg('Error: ' + e.message, 'err'); }
+  btn.disabled = false;
+}
+
+// ─── MANAGE TABLE ─────────────────────────────────────────────────────────────
+async function loadTable() {
+  try {
+    const data = await api('stories?select=*&order=created_at.desc');
+    const wrap = document.getElementById('stlist');
+    if (!data || !data.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">No stories yet.</div>';
+      return;
+    }
+    
+    let html = '<div style="overflow-x:auto"><table><tr><th>Cover</th><th>Title</th><th>Type</th><th>Genre</th><th>Eps</th><th>Del</th></tr>';
+    data.forEach(s => {
+      const isVideo = s.type === 'video';
+      html += `
+        <tr>
+          <td><img class="sthumb" src="${s.cover_url}" onerror="this.style.display='none'"></td>
+          <td><b>${s.title}</b><br><small style="color:var(--muted)">${s.author}</small></td>
+          <td><span class="type-badge ${isVideo ? 'video' : 'manga'}">${isVideo ? '🎬 Video' : '📖 Manga'}</span></td>
+          <td>${s.genre}</td>
+          <td>${s.chapters_count || 0}</td>
+          <td><button class="dbtn" onclick="delStory('${s.id}','${s.title.replace(/'/g, "\\'")}')">Del</button></td>
+        </tr>
+      `;
     });
     html += '</table></div>';
     wrap.innerHTML = html;
-  } catch(e){ document.getElementById('stlist').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">'+e.message+'</div>'; }
+  } catch(e) {
+    document.getElementById('stlist').innerHTML = `<div style="color:var(--muted);text-align:center;padding:20px">${e.message}</div>`;
+  }
 }
 
-async function delStory(id, title){
-  if(!confirm('Delete "'+title+'"?')) return;
-  await api('stories?id=eq.'+id, 'DELETE');
-  amsg('"'+title+'" deleted','ok');
-  loadTable(); loadStats();
+async function delStory(id, title) {
+  if (!confirm(`Delete "${title}"?`)) return;
+  await api('stories?id=eq.' + id, 'DELETE');
+  amsg(`"${title}" deleted`, 'ok');
+  loadTable();
+  loadStats();
 }
 </script>
 </body>
