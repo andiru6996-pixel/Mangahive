@@ -771,11 +771,7 @@ async function callOpenAI(apiKey, prompt, neg, w, h) {
   if (res.status === 401) throw new Error('Invalid OpenAI key');
   if (res.status === 429) throw new Error('OpenAI rate limited');
   if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error || `HTTP ${res.status}`); }
-  const data = await res.json();
-  const imgUrl = data?.data?.[0]?.url;
-  if (!imgUrl) throw new Error('No URL returned');
-  const imgRes = await fetch(imgUrl);
-  return await imgRes.blob();
+  return await res.blob();
 }
 </script>
 </body>

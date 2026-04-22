@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/openai.js": { "maxDuration": 60 },
+    "api/replicate.js": { "maxDuration": 60 },
+    "api/huggingface.js": { "maxDuration": 60 },
+    "api/upload.js": { "maxDuration": 60 }
+  }
+}

@@ -2616,13 +2616,8 @@ async function callOpenAI(apiKey, prompt, neg, w, h) {
       throw new Error(err?.error || `HTTP ${res.status}`);
     }
 
-    const data = await res.json();
-    const imgUrl = data?.data?.[0]?.url;
-    if (!imgUrl) throw new Error('No image URL returned');
-
-    const imgRes = await fetch(imgUrl);
-    if (!imgRes.ok) throw new Error('Failed to fetch image');
-    return await imgRes.blob();
+    // Proxy returns image bytes directly (CDN URL is CORS-blocked in browser)
+    return await res.blob();
   } catch(e) {
     throw new Error(`OpenAI error: ${e.message}`);
   }
