@@ -2593,32 +2593,43 @@ async function callOpenAI(apiKey, prompt, neg, w, h) {
   const sizeKey = `${w}x${h}`;
   const size = validSizes[sizeKey] || validSizes['default'];
 
-  const body = {
-    model: 'dall-e-3',
-    prompt: prompt.substring(0, 4000),
-    n: 1,
-    size: size,
-    quality: 'standard',
-    response_format: 'url'
+  const makeBody = (p) => ({
+    model: 'dall-e-3', n: 1, size, quality: 'standard', response_format: 'url',
+    prompt: p.substring(0, 4000)
+  });
+
+  const sanitize = (p) => {
+    // Strip terms that commonly trigger DALL-E safety filter
+    return p
+      .replace(/\b(blood|gore|violent|violence|dead|death|dying|corpse|kill|murder|weapon|gun|knife|sword|wound|injury|injured|nude|naked|sexual|explicit|drug|drugs)\b/gi, '')
+      .replace(/\s{2,}/g, ' ').trim()
+      + ', safe for work, tasteful, artistic';
   };
 
-  try {
+  const doFetch = async (p) => {
     const res = await fetch('/api/openai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: apiKey, endpoint: '/v1/images/generations', body })
+      body: JSON.stringify({ token: apiKey, endpoint: '/v1/images/generations', body: makeBody(p) })
     });
-
     if (res.status === 401) throw new Error('Invalid OpenAI API key');
     if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err?.error || `HTTP ${res.status}`);
     }
+    return res.blob();
+  };
 
-    // Proxy returns image bytes directly (CDN URL is CORS-blocked in browser)
-    return await res.blob();
+  try {
+    return await doFetch(prompt);
   } catch(e) {
+    if (e.message.includes('safety') || e.message.includes('rejected') || e.message.includes('content policy')) {
+      console.warn('Safety rejection — retrying with sanitized prompt');
+      try { return await doFetch(sanitize(prompt)); } catch(e2) {
+        throw new Error(`OpenAI error: ${e2.message}`);
+      }
+    }
     throw new Error(`OpenAI error: ${e.message}`);
   }
 }
