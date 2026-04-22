@@ -346,11 +346,10 @@ async function generateScript() {
 
   const btn = document.getElementById('btnGenScript');
   btn.disabled = true;
-  showStatus('scriptStatus', 'Claude AI is writing your script...', 'info');
+  showStatus('scriptStatus', 'GPT-4o is writing your script...', 'info');
 
-  const apiKey = localStorage.getItem('api_key_runware') ||
-                 localStorage.getItem('api_key_openai') ||
-                 localStorage.getItem('api_key_huggingface') || '';
+  const apiKey = localStorage.getItem('api_key_openai') || document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { showStatus('scriptStatus', 'Select OpenAI as provider and enter your API key in the header', 'err'); btn.disabled = false; return; }
 
   const systemPrompt = `You are an expert faceless YouTube video scriptwriter. You write compelling, engaging scripts optimized for AI image generation. Return ONLY valid JSON, no markdown, no explanation.`;
 
@@ -384,20 +383,25 @@ Rules:
 - NO character names or faces for faceless content — use environments, objects, symbols, atmospheric shots`;
 
   try {
-    const res = await fetch('/api/claude', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-4o',
         max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt }
+        ]
       })
     });
 
-    if (!res.ok) throw new Error('Claude API error — check your /api/claude proxy');
+    if (res.status === 401) throw new Error('Invalid OpenAI API key');
+    if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
     const data = await res.json();
-    const raw = data?.content?.[0]?.text || '';
+    const raw = data?.choices?.[0]?.message?.content || '';
     const jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
     const parsed = JSON.parse(jsonStr);
 
