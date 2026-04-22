@@ -383,23 +383,27 @@ Rules:
 - NO character names or faces for faceless content — use environments, objects, symbols, atmospheric shots`;
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('/api/openai', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 4000,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user',   content: userPrompt }
-        ]
+        token: apiKey,
+        endpoint: '/v1/chat/completions',
+        body: {
+          model: 'gpt-4o',
+          max_tokens: 4000,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user',   content: userPrompt }
+          ]
+        }
       })
     });
 
     if (res.status === 401) throw new Error('Invalid OpenAI API key');
     if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error || `HTTP ${res.status}`); }
     const data = await res.json();
     const raw = data?.choices?.[0]?.message?.content || '';
     const jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
@@ -757,14 +761,16 @@ async function callStability(apiKey, prompt, neg, w, h) {
 
 async function callOpenAI(apiKey, prompt, neg, w, h) {
   const size = w > h ? '1792x1024' : h > w ? '1024x1792' : '1024x1024';
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method:'POST',
-    headers:{ 'Authorization':`Bearer ${apiKey}`, 'Content-Type':'application/json' },
-    body: JSON.stringify({ model:'dall-e-3', prompt:prompt.substring(0,4000), n:1, size, quality:'standard', response_format:'url' })
+  const res = await fetch('/api/openai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: apiKey, endpoint: '/v1/images/generations',
+      body: { model:'dall-e-3', prompt:prompt.substring(0,4000), n:1, size, quality:'standard', response_format:'url' }
+    })
   });
   if (res.status === 401) throw new Error('Invalid OpenAI key');
   if (res.status === 429) throw new Error('OpenAI rate limited');
-  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error || `HTTP ${res.status}`); }
   const data = await res.json();
   const imgUrl = data?.data?.[0]?.url;
   if (!imgUrl) throw new Error('No URL returned');

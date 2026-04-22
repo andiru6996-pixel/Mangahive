@@ -2603,20 +2603,17 @@ async function callOpenAI(apiKey, prompt, neg, w, h) {
   };
 
   try {
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
+    const res = await fetch('/api/openai', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: apiKey, endpoint: '/v1/images/generations', body })
     });
 
     if (res.status === 401) throw new Error('Invalid OpenAI API key');
     if (res.status === 429) throw new Error('OpenAI rate limited — wait a moment and retry');
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      throw new Error(err?.error || `HTTP ${res.status}`);
     }
 
     const data = await res.json();
