@@ -809,18 +809,6 @@ document.addEventListener('DOMContentLoaded', function() {
     <div id="ownPanelStatus" style="display:none;margin-top:8px"></div>
   </div>
 
-  <!-- POST-GENERATION PROMPT REVIEW -->
-  <div id="postGenSection" style="display:none;margin-top:32px">
-    <div class="divider-gold"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--white)">Regenerate Specific Panels</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px">Edit the prompt for any failed or unsatisfactory panel, then regenerate just that one.</div>
-      </div>
-    </div>
-    <div id="postGenPromptList" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;padding-right:4px"></div>
-  </div>
-
   <div class="stage-nav">
     <div class="stage-nav-left">
       <button class="btn-ghost" onclick="goToStage(2)">← Back</button>
@@ -1168,6 +1156,7 @@ let genStart = null;
 let loadedPanels = [];
 let processedCanvases = [];
 let skippedPanels = new Set();
+let promptsAiGenerated = false;
 let sbClient = null;
 
 // ══════════════════════════════════════════
@@ -1227,8 +1216,9 @@ function buildStoryGrid() {
 // ══════════════════════════════════════════
 function selectStory(i) {
   console.log('selectStory called with index:', i);
-  selStory = i; 
+  selStory = i;
   selEp = -1;
+  promptsAiGenerated = false;
   // Update selected state
   for(let j = 0; j < 5; j++) {
     const card = document.getElementById('sc' + j);
@@ -1257,6 +1247,7 @@ function buildEpChips() {
 
 function selectEp(n) {
   selEp = n;
+  promptsAiGenerated = false;
   document.querySelectorAll('.ep-chip').forEach(c => c.classList.toggle('sel', c.textContent.startsWith(`Ep ${n}:`)));
   const story = STORIES[selStory];
   const ep = story.episodes.find(e => e.n === n);
@@ -1273,8 +1264,8 @@ function selectEp(n) {
 // ══════════════════════════════════════════
 function goToStage(n) {
   if (n === 2 && (selStory < 0 || selEp < 0)) { showToast('Select a story and episode first', 'err'); return; }
-  if (n === 3) buildPrompts();
-  if (n === 3) buildImageGrid();
+  if (n === 3) { buildPrompts(); buildImageGrid(); if (!promptsAiGenerated) setTimeout(autoGeneratePrompts, 200); }
+  if (n === 4) setTimeout(aiGenerateScript, 200);
   if (n === 2) { buildCharCards(); setTimeout(showPromptEditor, 100); }
 
   currentStage = n;
@@ -1393,7 +1384,6 @@ function buildPrompts() {
   document.getElementById('stTotal').textContent = prompts.length;
   document.getElementById('stQueue').textContent = prompts.length;
   renderPromptEditor();
-  renderPostGenPrompts();
 }
 
 function showPromptEditor() {
@@ -1437,17 +1427,6 @@ function resetToDefaultPrompts() {
   showToast('Prompts reset to defaults', 'ok');
 }
 
-function renderPostGenPrompts() {
-  const list = document.getElementById('postGenPromptList');
-  if (!list || !prompts.length) return;
-  list.innerHTML = prompts.map((p, i) => `
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
-      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:.15em;white-space:nowrap;margin-top:3px">P${i+1}</span>
-      <textarea id="pgp_${i}" rows="2" style="flex:1;background:var(--bg4);border:1px solid var(--border2);color:var(--white2);font-family:'DM Mono',monospace;font-size:10px;padding:6px 9px;border-radius:4px;outline:none;resize:vertical;line-height:1.6" oninput="prompts[${i}]=this.value">${p}</textarea>
-      <button onclick="retrySingle(${i})" style="background:var(--gold);color:var(--bg);border:none;padding:7px 12px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;white-space:nowrap;letter-spacing:.08em">Regen</button>
-    </div>
-  `).join('');
-}
 
 async function autoGeneratePrompts() {
   if (selStory < 0 || selEp < 0) { showToast('Select story and episode first', 'err'); return; }
@@ -1525,6 +1504,7 @@ Write 18 varied manga panel scene descriptions covering: establishing shots, cha
     }
 
     renderPromptEditor();
+    promptsAiGenerated = true;
     btn.textContent = '✦ AI Generate All Prompts';
     statusEl.innerHTML = '<div class="status-bar status-ok">✓ 18 AI-generated prompts ready — review and edit below, then generate!</div>';
     showToast('AI prompts generated!', 'ok');
@@ -1624,9 +1604,6 @@ async function startGeneration() {
     document.getElementById('btnS3Next').disabled = false;
     autoTransferPanels();
     showToast(`${genDone} panels done! Proceed to Dialogue →`, 'ok');
-    // Show post-gen prompt editor for regeneration
-    document.getElementById('postGenSection').style.display = 'block';
-    renderPostGenPrompts();
   }
 }
 
@@ -1691,14 +1668,28 @@ function setCellLoading(i) {
 function setCellDone(i, blob) {
   const url = URL.createObjectURL(blob);
   const c = document.getElementById(`cell_${i}`);
-  c.innerHTML = `<img src="${url}" alt="P${i+1}"><div class="img-cell-num">P${i+1}</div><div class="img-overlay"><button style="background:var(--gold);color:var(--bg);border:none;padding:7px 16px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase" onclick="dlSingle(${i})">Download</button><button style="background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.3);padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;margin-top:5px" onclick="retrySingle(${i})">Retry</button></div>`;
+  const escaped = (prompts[i] || '').replace(/`/g, '&#96;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  c.innerHTML = `<img src="${url}" alt="P${i+1}"><div class="img-cell-num">P${i+1}</div><div class="img-overlay"><button style="background:var(--gold);color:var(--bg);border:none;padding:7px 16px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase" onclick="dlSingle(${i})">Download</button><button style="background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.3);padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;margin-top:5px" onclick="toggleInlineEdit(${i})">Edit Prompt</button></div><div id="inlineEdit_${i}" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(7,7,9,.94);padding:6px;z-index:6;border-top:1px solid var(--goldBorder)"><textarea id="inlinePrompt_${i}" style="width:100%;background:rgba(0,0,0,.5);color:var(--white);border:1px solid var(--goldBorder);border-radius:3px;padding:4px 6px;font-family:'DM Mono',monospace;font-size:8px;resize:vertical;min-height:52px;line-height:1.4">${escaped}</textarea><button style="margin-top:4px;width:100%;background:var(--gold);color:var(--bg);border:none;padding:5px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase" onclick="retrySingle(${i})">↺ Regenerate</button></div>`;
 }
 function setCellError(i, msg) {
   const c = document.getElementById(`cell_${i}`);
-  c.innerHTML = `<div class="cell-error"><div class="cell-err-msg">${msg.substring(0,50)}</div><button style="margin-top:6px;background:transparent;color:var(--red);border:1px solid rgba(212,79,79,.3);padding:5px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em" onclick="retrySingle(${i})">Retry</button></div><div class="img-cell-num">P${i+1}</div>`;
+  const escaped = (prompts[i] || '').replace(/`/g, '&#96;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  c.innerHTML = `<div class="cell-error" style="padding:8px 6px;overflow:hidden"><div class="cell-err-msg" style="margin-bottom:4px">${msg.substring(0,60)}</div><textarea id="inlinePrompt_${i}" style="width:100%;background:rgba(0,0,0,.5);color:var(--white2);border:1px solid rgba(212,79,79,.4);border-radius:3px;padding:4px 6px;font-family:'DM Mono',monospace;font-size:8px;resize:vertical;min-height:52px;line-height:1.4">${escaped}</textarea><button style="margin-top:4px;width:100%;background:var(--red);color:#fff;border:none;padding:5px 10px;font-family:'DM Mono',monospace;font-size:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase" onclick="retrySingle(${i})">↺ Retry</button></div><div class="img-cell-num">P${i+1}</div>`;
+}
+function toggleInlineEdit(i) {
+  const el = document.getElementById(`inlineEdit_${i}`);
+  if (!el) return;
+  const show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  if (show) {
+    const ta = document.getElementById(`inlinePrompt_${i}`);
+    if (ta) ta.value = prompts[i] || '';
+  }
 }
 
 async function retrySingle(i) {
+  const inlineTA = document.getElementById(`inlinePrompt_${i}`);
+  if (inlineTA && inlineTA.value.trim()) prompts[i] = inlineTA.value.trim();
   const token = '';
   const model = document.getElementById('modelSelect').value;
   const w = parseInt(document.getElementById('imgW').value);
@@ -2223,7 +2214,7 @@ async function createChapter() {
 }
 
 function startNewEpisode() {
-  selEp = -1; prompts = []; results = {}; processedCanvases = []; loadedPanels = [];
+  selEp = -1; prompts = []; results = {}; processedCanvases = []; loadedPanels = []; promptsAiGenerated = false;
   document.getElementById('btnS1Next').disabled = true;
   document.querySelectorAll('.ep-chip').forEach(c => c.classList.remove('sel'));
   document.getElementById('imageUrls').value = '';
