@@ -24,15 +24,22 @@ export default async function handler(req, res) {
 
     const data = await openaiRes.json();
 
-    // For image generation: fetch the CDN image server-side and return as binary
-    // (the CDN URL blocks browser CORS fetches)
+    // For image generation: return the image as binary.
+    // OpenAI's image models return either a CDN url or an inline b64_json
+    // depending on model/account defaults (response_format is no longer
+    // reliably settable on the request), so handle both.
     const imgUrl = data?.data?.[0]?.url;
+    const imgB64 = data?.data?.[0]?.b64_json;
     if (imgUrl) {
       const imgRes = await fetch(imgUrl);
       if (!imgRes.ok) return res.status(502).json({ error: 'Failed to fetch generated image from CDN' });
       const buffer = await imgRes.arrayBuffer();
       res.setHeader('Content-Type', 'image/png');
       return res.status(200).send(Buffer.from(buffer));
+    }
+    if (imgB64) {
+      res.setHeader('Content-Type', 'image/png');
+      return res.status(200).send(Buffer.from(imgB64, 'base64'));
     }
 
     return res.status(200).json(data);

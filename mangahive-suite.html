@@ -2586,7 +2586,7 @@ async function callOpenAI(apiKey, prompt, neg, w, h) {
   const size = validSizes[sizeKey] || validSizes['default'];
 
   const makeBody = (p) => ({
-    model: 'dall-e-3', n: 1, size, quality: 'standard', response_format: 'url',
+    model: 'dall-e-3', n: 1, size, quality: 'standard',
     prompt: p.substring(0, 4000)
   });
 
